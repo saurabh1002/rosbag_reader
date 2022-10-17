@@ -8,7 +8,7 @@ set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 # Specify build type
 if(NOT CMAKE_BUILD_TYPE)
-    set(CMAKE_BUILD_TYPE Release)
+    set(CMAKE_BUILD_TYPE Debug)
 endif()
 
 # Unit Test, Code Coverage, clang-format, clan-tidy, cppcheck Configuration:
@@ -28,5 +28,6 @@ endif(ENABLE_CLANG_FORMAT)
 
 # include(3rdparty/find_dependencies.cmake)
 
+include_directories(${CMAKE_SOURCE_DIR}/includes)
 # Add subdirectory with a sub-project
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
