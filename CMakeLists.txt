@@ -4,6 +4,7 @@ project(rosbag_reader DESCRIPTION "Read ROS1 bag files using only c++" LANGUAGES
 
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_SOURCE_DIR}/bin)
 
 # Specify build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -25,7 +26,7 @@ if (ENABLE_CLANG_FORMAT)
   include(ClangFormat)
 endif(ENABLE_CLANG_FORMAT)
 
-include(3rdparty/find_dependencies.cmake)
+# include(3rdparty/find_dependencies.cmake)
 
 # Add subdirectory with a sub-project
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
