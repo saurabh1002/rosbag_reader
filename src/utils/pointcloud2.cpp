@@ -9,9 +9,11 @@
 
 #include "header.hpp"
 #include "pointField.hpp"
+#include "savePCD.hpp"
 #include "utils.hpp"
 
 int readPointCloud2(std::ifstream &rosbag, int data_len) {
+    static int32_t count = 0;
     header::read(rosbag, data_len);
 
     uint32_t height = 0;
@@ -66,19 +68,24 @@ int readPointCloud2(std::ifstream &rosbag, int data_len) {
         }
     }
 
+    bool is_dense;
+    rosbag.read(reinterpret_cast<char *>(&is_dense), sizeof(is_dense));
+    std::cout << "is_dense: " << static_cast<int>(is_dense) << "\n";
+
     std::vector<std::vector<double>> pointcloud2;
     std::for_each(fields_ptr.cbegin(), fields_ptr.cend(),
                   [&pointcloud2](auto field_ptr) {
                       pointcloud2.emplace_back(field_ptr->getData());
                   });
 
-    std::ofstream out;
-    out.open("pcl.txt");
-    std::for_each(pointcloud2.cbegin(), pointcloud2.cend(),
-                  [&out](auto field_vec) {
-                      std::for_each(field_vec.cbegin(), field_vec.cend(),
-                                    [&out](auto val) { out << val << ","; });
-                      out << "\n";
+    std::vector<std::string> field_names;
+    field_names.reserve(num_point_fields);
+    std::for_each(fields_ptr.cbegin(), fields_ptr.cend(),
+                  [&field_names](auto field_ptr) {
+                      field_names.emplace_back(field_ptr->getName());
                   });
+
+    savePointCloud(pointcloud2, field_names, "../PLY", count);
+    count++;
     return 0;
 }

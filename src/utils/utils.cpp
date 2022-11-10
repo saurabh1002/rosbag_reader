@@ -61,6 +61,8 @@ int readRecord(std::ifstream &rosbag) {
         case 2:
             readMessageData(rosbag, header_len);
             break;
+        case 4:
+
         default:
             retval = 0;
             std::cerr << "No record reader for opval = " << opval << std::endl;
