@@ -1,124 +1,35 @@
 #include "utils.hpp"
 
 #include <cassert>
+#include <cstddef>
 #include <fstream>
 #include <iostream>
 #include <memory>
+#include <set>
+#include <sstream>
 #include <string>
+#include <vector>
 
-int readOp(std::ifstream &rosbag) {
-    int field_len = 0;
-    rosbag.read(reinterpret_cast<char *>(&field_len), 4);
-    assert(((void)"Expected Field Length of 4 for field op", field_len == 4));
-
-    std::string field_name;
-    std::getline(rosbag, field_name, '=');
-    assert(((void)"Wrong field name for bag header record, expected op",
-            field_name == "op"));
-
-    int opval = 0;
-    rosbag.read(reinterpret_cast<char *>(&opval), 1);
-    std::printf("op = %d\n", opval);
-    return opval;
+void readString(std::ifstream &rosbag, std::string &str, int n_bytes) {
+    std::unique_ptr<char[]> const buffer(new char[n_bytes + 1]);
+    buffer.get()[n_bytes] = '\0';
+    rosbag.read(buffer.get(), n_bytes);
+    str = buffer.get();
 }
 
-int readBagHeader(std::ifstream &rosbag) {
-    std::cout << "Reading Bag Header ........." << std::endl;
-
-    std::string field_name;
-    int field_len = 0;
-
-    rosbag.read(reinterpret_cast<char *>(&field_len), 4);
-    long int index_pos = 0;
-    std::getline(rosbag, field_name, '=');
-    assert(((void)"Wrong field name for bag header record, expected index_pos",
-            field_name == "index_pos"));
-    rosbag.read(reinterpret_cast<char *>(&index_pos), 8);
-    std::printf("index_pos = %ld\n", index_pos);
-
-    rosbag.read(reinterpret_cast<char *>(&field_len), 4);
-    int conn_count = 0;
-    std::getline(rosbag, field_name, '=');
-    assert(((void)"Wrong field name for bag header record, expected conn_count",
-            field_name == "conn_count"));
-    rosbag.read(reinterpret_cast<char *>(&conn_count), 4);
-    std::printf("conn_count = %d\n", conn_count);
-
-    rosbag.read(reinterpret_cast<char *>(&field_len), 4);
-    int chunk_count = 0;
-    std::getline(rosbag, field_name, '=');
-    assert(((void)"Wrong field name for bag header record, expected "
-                  "chunk_count",
-            field_name == "chunk_count"));
-    rosbag.read(reinterpret_cast<char *>(&chunk_count), 4);
-    std::printf("chunk_count = %d\n", chunk_count);
-
-    // Ignore Data
-    int data_len = 0;
-    rosbag.read(reinterpret_cast<char *>(&data_len), 4);
-    std::cout << "Data Length = " << data_len << "\n\n\n";
-    rosbag.ignore(data_len);
-    return chunk_count;
-}
-
-int readChunk(std::ifstream &rosbag) {
-    std::cout << "Reading Chunk ........." << std::endl;
-
+std::tuple<std::string, std::string> readStringField(std::ifstream &rosbag,
+                                                     int &header_len) {
     int field_len = 0;
     rosbag.read(reinterpret_cast<char *>(&field_len), 4);
     std::string field_name;
     std::getline(rosbag, field_name, '=');
-    assert(((void)"Wrong field name for chunk record, expected compression",
-            field_name == "compression"));
+    std::string field_val;
+    readString(rosbag, field_val,
+               field_len - static_cast<int>(field_name.size()) - 1);
+    std::cout << field_name << " = " << field_val << "\n";
+    header_len -= (field_len + 4);
 
-    const int compression_type_len =
-            field_len - static_cast<int>(field_name.size()) - 1;
-    std::unique_ptr<char[]> const compression_type(
-            new char[compression_type_len]);
-    rosbag.read(compression_type.get(), compression_type_len);
-    std::printf("Compression = %s\n",
-                std::string(compression_type.get()).c_str());
-
-    rosbag.read(reinterpret_cast<char *>(&field_len), 4);
-    std::getline(rosbag, field_name, '=');
-    assert(((void)"Wrong field name for chunk record, expected size",
-            field_name == "size"));
-    int compressed_chunk_size = 0;
-    rosbag.read(reinterpret_cast<char *>(&compressed_chunk_size), 4);
-    std::printf("Compressed Chunk Size = %d\n", compressed_chunk_size);
-
-    int uncompressed_chunk_size = 0;
-    rosbag.read(reinterpret_cast<char *>(&uncompressed_chunk_size), 4);
-    std::cout << "Uncompressed Chunk Size = " << uncompressed_chunk_size
-              << "\n\n";
-
-    auto val = readRecord(rosbag);
-    return uncompressed_chunk_size;
-}
-
-int readConnection(std::ifstream &rosbag, int header_len) {
-    std::cout << "Reading Connection ........." << std::endl;
-    int conn = 0;
-    int field_len = 0;
-    std::string field_name;
-    rosbag.read(reinterpret_cast<char *>(&field_len), 4);
-    std::getline(rosbag, field_name, '=');
-    assert(((void)"Wrong field name for Connection record, expected topic",
-            field_name == "topic"));
-    const int topic_len = field_len - static_cast<int>(field_name.size()) - 1;
-    std::unique_ptr<char[]> const topic(new char[topic_len]);
-    rosbag.read(topic.get(), topic_len);
-    std::printf("Topic = %s\n", std::string(topic.get()).c_str());
-
-    int val = 0;
-    std::cout << header_len << std::endl;
-    rosbag.read(reinterpret_cast<char *>(&field_len), 4);
-    std::getline(rosbag, field_name, '=');
-    std::printf("Field Name = %s\n", field_name.c_str());
-    rosbag.read(reinterpret_cast<char *>(&val),
-                field_len - static_cast<int>(field_name.size()) - 1);
-    std::printf("Field Value = %d\n", val);
-    return val;
+    return std::make_tuple(field_name, field_val);
 }
 
 int readRecord(std::ifstream &rosbag) {
@@ -132,17 +43,23 @@ int readRecord(std::ifstream &rosbag) {
     int opval = 0;
 
     // Read op field
-    opval = readOp(rosbag);
+    opval = readOp(rosbag, header_len);
 
     switch (opval) {
-        case 3:
-            retval = readBagHeader(rosbag);
+        case 3: {
+            auto [index_pos, conn_count, chunk_count] =
+                    readBagHeader(rosbag, header_len);
+            retval = chunk_count;
             break;
+        }
         case 5:
-            retval = readChunk(rosbag);
+            retval = readChunk(rosbag, header_len);
             break;
         case 7:
-            retval = readConnection(rosbag, header_len);
+            readConnection(rosbag, header_len);
+            break;
+        case 2:
+            readMessageData(rosbag, header_len);
             break;
         default:
             retval = 0;
@@ -150,4 +67,145 @@ int readRecord(std::ifstream &rosbag) {
             break;
     }
     return retval;
+}
+
+int readOp(std::ifstream &rosbag, int &header_len) {
+    std::string field_name;
+    int field_len = 0;
+    rosbag.read(reinterpret_cast<char *>(&field_len), 4);
+
+    std::getline(rosbag, field_name, '=');
+    assert(((void)"Wrong field name for bag header record, expected op",
+            field_name == "op"));
+
+    int op_val = 0;
+    rosbag.read(reinterpret_cast<char *>(&op_val), 1);
+    std::cout << field_name.c_str() << " = " << op_val << "\n";
+
+    header_len -= (4 + field_len);
+    return op_val;
+}
+
+std::tuple<long int, int, int> readBagHeader(std::ifstream &rosbag,
+                                             int header_len) {
+    std::cout << "Reading Bag Header ........." << std::endl;
+
+    std::string field_name;
+
+    const std::set<std::string> expected_field_names{"index_pos", "conn_count",
+                                                     "chunk_count"};
+
+    long int index_pos = 0;
+    int conn_count = 0;
+    int chunk_count = 0;
+
+    std::tie(field_name, index_pos) = readField<long int>(rosbag, header_len);
+    assert(((void)"Connection Header contains wrong field",
+            expected_field_names.find(field_name) !=
+                    expected_field_names.end()));
+
+    std::tie(field_name, conn_count) = readField<int>(rosbag, header_len);
+    assert(((void)"Connection Header contains wrong field",
+            expected_field_names.find(field_name) !=
+                    expected_field_names.end()));
+
+    std::tie(field_name, chunk_count) = readField<int>(rosbag, header_len);
+    assert(((void)"Connection Header contains wrong field",
+            expected_field_names.find(field_name) !=
+                    expected_field_names.end()));
+
+    assert(((void)"Header not read completely", header_len == 0));
+
+    // Ignore Data
+    int data_len = 0;
+    rosbag.read(reinterpret_cast<char *>(&data_len), 4);
+    std::cout << "Data Length = " << data_len << "\n\n";
+    rosbag.ignore(data_len);
+    return std::make_tuple(index_pos, conn_count, chunk_count);
+}
+
+int readChunk(std::ifstream &rosbag, int header_len) {
+    std::cout << "Reading Chunk ........." << std::endl;
+
+    const std::set<std::string> expected_field_names{"compression", "size"};
+
+    auto [field_name, field_val] = readStringField(rosbag, header_len);
+    assert(((void)"Connection Header contains wrong field",
+            expected_field_names.find(field_name) !=
+                    expected_field_names.end()));
+
+    int uncompressed_chunk_size = 0;
+    std::tie(field_name, uncompressed_chunk_size) =
+            readField<int>(rosbag, header_len);
+    assert(((void)"Connection Header contains wrong field",
+            expected_field_names.find(field_name) !=
+                    expected_field_names.end()));
+
+    assert(((void)"Header not read completely", header_len == 0));
+
+    // Data
+    int data_len = 0;
+    rosbag.read(reinterpret_cast<char *>(&data_len), 4);
+    std::cout << "Compressed Chunk Size = " << data_len << "\n\n";
+
+    (void)readRecord(rosbag);  // Connection
+    (void)readRecord(rosbag);  // Message Data
+
+    return data_len;
+}
+
+void readConnection(std::ifstream &rosbag, int header_len) {
+    std::cout << "Reading Connection ........." << std::endl;
+    auto [field_name, field_val] = readStringField(rosbag, header_len);
+    assert(((void)"Wrong field name for Connection record, expected topic",
+            field_name == "topic"));
+
+    int conn = 0;
+    std::tie(field_name, conn) = readField<int>(rosbag, header_len);
+    assert(((void)"Wrong field name for Connection record, expected conn",
+            field_name == "conn"));
+
+    assert(((void)"Header not read completely", header_len == 0));
+
+    // Data - Connection Header
+    int data_len = 0;
+    rosbag.read(reinterpret_cast<char *>(&data_len), 4);
+
+    const std::set<std::string> expected_field_names{
+            "topic",    "type",    "md5sum", "message_definition",
+            "callerid", "latching"};
+
+    while (data_len != 0) {
+        std::tie(field_name, field_val) = readStringField(rosbag, data_len);
+        assert(((void)"Connection Header contains wrong field",
+                expected_field_names.find(field_name) !=
+                        expected_field_names.end()));
+    }
+}
+
+void readMessageData(std::ifstream &rosbag, int header_len) {
+    std::cout << "Reading Message Data ........." << std::endl;
+
+    std::set<std::string> expected_field_names{"conn", "time"};
+
+    std::string field_name;
+    int conn = 0;
+    std::tie(field_name, conn) = readField<int>(rosbag, header_len);
+    assert(((void)"Connection Header contains wrong field",
+            expected_field_names.find(field_name) !=
+                    expected_field_names.end()));
+
+    long int time = 0;
+    std::tie(field_name, time) = readField<long int>(rosbag, header_len);
+    assert(((void)"Connection Header contains wrong field",
+            expected_field_names.find(field_name) !=
+                    expected_field_names.end()));
+
+    assert(((void)"Header not read completely", header_len == 0));
+
+    // Data - Serialized Message Data
+    int data_len = 0;
+    rosbag.read(reinterpret_cast<char *>(&data_len), 4);
+    std::printf("Message data - Data Len = %d\n", data_len);
+    (void)readPointCloud2(rosbag, data_len);
 }

@@ -26,7 +26,7 @@ if (ENABLE_CLANG_FORMAT)
   include(ClangFormat)
 endif(ENABLE_CLANG_FORMAT)
 
-# include(3rdparty/find_dependencies.cmake)
+include(3rdparty/find_dependencies.cmake)
 
 include_directories(${CMAKE_SOURCE_DIR}/includes)
 # Add subdirectory with a sub-project

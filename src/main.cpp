@@ -28,4 +28,6 @@ int main() {
     auto chunk_count = readRecord(rosbag);
 
     auto uncompressed_chunk_size = readRecord(rosbag);
+
+    return 0;
 }
