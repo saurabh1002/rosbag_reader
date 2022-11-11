@@ -1,10 +1,8 @@
+#include <glog/logging.h>
+
 #include <algorithm>
-#include <any>
-#include <iostream>
-#include <map>
 #include <memory>
 #include <string>
-#include <tuple>
 #include <vector>
 
 #include "header.hpp"
@@ -18,13 +16,13 @@ int readPointCloud2(std::ifstream &rosbag, int data_len) {
 
     uint32_t height = 0;
     rosbag.read(reinterpret_cast<char *>(&height), sizeof(height));
-    std::cout << "height: " << height << "\n";
+    LOG(INFO) << "height: " << height;
     uint32_t width = 0;
     rosbag.read(reinterpret_cast<char *>(&width), sizeof(width));
-    std::cout << "width: " << width << "\n";
+    LOG(INFO) << "width: " << width;
     data_len -= static_cast<int>(sizeof(height) + sizeof(width));
 
-    std::cout << "fields:\n";
+    LOG(INFO) << "fields:";
     int32_t num_point_fields = 0;
     rosbag.read(reinterpret_cast<char *>(&num_point_fields),
                 sizeof(num_point_fields));
@@ -37,13 +35,13 @@ int readPointCloud2(std::ifstream &rosbag, int data_len) {
 
     bool is_bigendian = false;
     rosbag.read(reinterpret_cast<char *>(&is_bigendian), sizeof(is_bigendian));
-    std::printf("is_bigendian: %d\n", static_cast<int>(is_bigendian));
+    LOG(INFO) << "is_bigendian: " << static_cast<int>(is_bigendian);
     uint32_t point_step = 0;
     rosbag.read(reinterpret_cast<char *>(&point_step), sizeof(point_step));
     uint32_t row_step = 0;
     rosbag.read(reinterpret_cast<char *>(&row_step), sizeof(row_step));
-    std::printf("point_step: %u\n", point_step);
-    std::printf("row_step: %u\n", row_step);
+    LOG(INFO) << "point_step: " << point_step;
+    LOG(INFO) << "row_step: " << row_step;
 
     data_len -= (static_cast<int>(sizeof(row_step) + sizeof(point_step)) +
                  static_cast<int>(sizeof(is_bigendian)));
@@ -52,7 +50,7 @@ int readPointCloud2(std::ifstream &rosbag, int data_len) {
     rosbag.read(reinterpret_cast<char *>(&len_data_field),
                 sizeof(len_data_field));
     data_len -= 4;
-    std::cout << "len(data[]): " << len_data_field << "\n";
+    LOG(INFO) << "length of data[]: " << len_data_field;
 
     uint32_t offset_ptr = 0;
     for (int row = 0; row < height; row++) {
@@ -68,9 +66,9 @@ int readPointCloud2(std::ifstream &rosbag, int data_len) {
         }
     }
 
-    bool is_dense;
+    bool is_dense = false;
     rosbag.read(reinterpret_cast<char *>(&is_dense), sizeof(is_dense));
-    std::cout << "is_dense: " << static_cast<int>(is_dense) << "\n";
+    LOG(INFO) << "is_dense: " << static_cast<int>(is_dense);
 
     std::vector<std::vector<double>> pointcloud2;
     std::for_each(fields_ptr.cbegin(), fields_ptr.cend(),

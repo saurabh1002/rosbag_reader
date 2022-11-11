@@ -1,14 +1,12 @@
 #include "pointField.hpp"
 
-#include <map>
+#include <glog/logging.h>
+
 #include <memory>
 #include <string>
 #include <vector>
 
 #include "utils.hpp"
-
-const std::map<uint8_t, uint32_t> dtype_to_bytes{
-        {1, 1}, {2, 1}, {3, 2}, {4, 2}, {5, 4}, {6, 4}, {7, 4}, {8, 8}};
 
 void PointField::insertPointField(
         const std::string &name,
@@ -79,10 +77,11 @@ std::vector<std::shared_ptr<PointField::PointField>> PointField::read(
         rosbag.read(reinterpret_cast<char *>(&offset), sizeof(offset));
         rosbag.read(reinterpret_cast<char *>(&datatype), sizeof(datatype));
         rosbag.read(reinterpret_cast<char *>(&count), sizeof(count));
-        std::printf("\t-\n\t\tname: %s", name.c_str());
-        std::printf("\n\t\toffset: %d", offset);
-        std::printf("\n\t\tdatatype: %d", datatype);
-        std::printf("\n\t\tcount: %d\n", count);
+        LOG(INFO) << "\t-\n\t\tname: " << name.c_str();
+        LOG(INFO) << "\t-\n\t\toffset: " << offset;
+        LOG(INFO) << "\t-\n\t\tdatatype: " << datatype;
+        LOG(INFO) << "\t-\n\t\tcount: " << count;
+
         insertPointField(name, offset, datatype, size, fields_ptr);
 
         data_len -= (13 + static_cast<int>(len_name));

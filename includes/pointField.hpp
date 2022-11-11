@@ -1,6 +1,4 @@
-#include <algorithm>
 #include <fstream>
-#include <iostream>
 #include <memory>
 #include <string>
 #include <vector>
@@ -46,8 +44,8 @@ private:
 
 void insertPointField(const std::string& name,
                       uint32_t offset,
-                      const uint8_t datatype,
-                      const unsigned long size,
+                      uint8_t datatype,
+                      unsigned long size,
                       std::vector<std::shared_ptr<PointField>>& fields_ptr);
 
 std::vector<std::shared_ptr<PointField>> read(std::ifstream& rosbag,
