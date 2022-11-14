@@ -77,10 +77,10 @@ std::vector<std::shared_ptr<PointField::PointField>> PointField::read(
         rosbag.read(reinterpret_cast<char *>(&offset), sizeof(offset));
         rosbag.read(reinterpret_cast<char *>(&datatype), sizeof(datatype));
         rosbag.read(reinterpret_cast<char *>(&count), sizeof(count));
-        LOG(INFO) << "\t-\n\t\tname: " << name.c_str();
-        LOG(INFO) << "\t-\n\t\toffset: " << offset;
-        LOG(INFO) << "\t-\n\t\tdatatype: " << datatype;
-        LOG(INFO) << "\t-\n\t\tcount: " << count;
+        LOG(INFO) << "name: " << name.c_str();
+        LOG(INFO) << "offset: " << offset;
+        LOG(INFO) << "datatype: " << datatype;
+        LOG(INFO) << "count: " << count;
 
         insertPointField(name, offset, datatype, size, fields_ptr);
 

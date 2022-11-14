@@ -8,10 +8,10 @@
 #include "indicators/progress_bar.hpp"
 #include "utils.hpp"
 
-int main() {
+int main(int argc, char* argv[]) {
     google::InitGoogleLogging("rosbag_reader");
 
-    std::string const rosbag_path = "../pcl2.bag";
+    std::string const rosbag_path = argv[1];
     std::ifstream rosbag(rosbag_path,
                          std::ios_base::in | std::ios_base::binary);
     if (!rosbag) {
@@ -26,7 +26,8 @@ int main() {
         return 1;
     }
 
-    auto chunk_count = readRecord(rosbag);
+    int chunk_count = 0;
+    auto num_of_chunks = readRecord(rosbag, chunk_count);
 
     indicators::ProgressBar pbar{
             indicators::option::BarWidth{40},
@@ -35,7 +36,7 @@ int main() {
             indicators::option::Lead{"■"},
             indicators::option::Remainder{"-"},
             indicators::option::End{"]"},
-            indicators::option::MaxProgress{chunk_count},
+            indicators::option::MaxProgress{num_of_chunks},
             indicators::option::ForegroundColor{indicators::Color::cyan},
             indicators::option::PostfixText{"Reading PointClouds from rosbag"},
             indicators::option::ShowElapsedTime{true},
@@ -43,14 +44,20 @@ int main() {
             indicators::option::FontStyles{std::vector<indicators::FontStyle>{
                     indicators::FontStyle::bold}}};
 
-    for (int idx = 0; idx < chunk_count; idx++) {
-        auto uncompressed_chunk_size = readRecord(rosbag);
-        (void)readRecord(rosbag);
+    while (true) {
+        if (rosbag.eof()) {
+            LOG(WARNING) << "End of File reached";
+            break;
+        }
+
+        (void)readRecord(rosbag, chunk_count);
 
         pbar.set_option(indicators::option::PostfixText{
-                std::to_string(idx + 1) + "/" + std::to_string(chunk_count)});
-        pbar.tick();
+                std::to_string(chunk_count) + "/" +
+                std::to_string(num_of_chunks)});
+        pbar.set_progress(chunk_count);
     }
+
     pbar.set_option(
             indicators::option::PostfixText{"Done Reading the bag file!"});
 

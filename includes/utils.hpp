@@ -4,6 +4,8 @@
 
 #include <fstream>
 #include <iostream>
+#include <map>
+#include <memory>
 #include <string>
 #include <tuple>
 
@@ -28,21 +30,26 @@ std::tuple<std::string, T> readField(std::ifstream &rosbag, int &header_len) {
     return std::make_tuple(field_name, field_val);
 }
 
-int readRecord(std::ifstream &rosbag);
+int readRecord(std::ifstream &rosbag, int &chunk_count);
 
-int readOp(std::ifstream &rosbag, int &header_len);
+std::tuple<long int, int, int> readBagHeader(
+        std::ifstream &rosbag,
+        std::map<std::string, std::shared_ptr<char[]>> fields);
 
-std::tuple<long int, int, int> readBagHeader(std::ifstream &rosbag,
-                                             int header_len);
+void readChunk(std::ifstream &rosbag,
+               std::map<std::string, std::shared_ptr<char[]>> fields,
+               int &chunk_count);
 
-int readChunk(std::ifstream &rosbag, int header_len);
+void readConnection(std::ifstream &rosbag,
+                    std::map<std::string, std::shared_ptr<char[]>> fields);
 
-void readConnection(std::ifstream &rosbag, int header_len);
-
-void readMessageData(std::ifstream &rosbag, int header_len);
+void readMessageData(std::ifstream &rosbag,
+                     std::map<std::string, std::shared_ptr<char[]>> fields);
 
 int readPointCloud2(std::ifstream &rosbag, int data_len);
 
-void readIndexData(std::ifstream &rosbag, int header_len);
+void readIndexData(std::ifstream &rosbag,
+                   std::map<std::string, std::shared_ptr<char[]>> fields);
 
-void readChunkInfo(std::ifstream &rosbag, int header_len);
+void readChunkInfo(std::ifstream &rosbag,
+                   std::map<std::string, std::shared_ptr<char[]>> fields);

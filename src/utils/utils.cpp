@@ -32,95 +32,97 @@ std::tuple<std::string, std::string> readStringField(std::ifstream &rosbag,
     return std::make_tuple(field_name, field_val);
 }
 
-int readRecord(std::ifstream &rosbag) {
-    // Read Header Length
+std::map<std::string, std::shared_ptr<char[]>> readRecordHeader(
+        std::ifstream &rosbag, int &header_len) {
+    std::map<std::string, std::shared_ptr<char[]>> fields;
+    std::string field_name;
+    int field_len = 0;
+    while (header_len != 0) {
+        rosbag.read(reinterpret_cast<char *>(&field_len), 4);
+
+        std::getline(rosbag, field_name, '=');
+        const int field_val_nbytes =
+                field_len - 1 - static_cast<int>(field_name.size());
+
+        std::shared_ptr<char[]> buffer(new char[field_val_nbytes]);
+        rosbag.read(buffer.get(), field_val_nbytes);
+        fields.insert({{field_name, buffer}});
+        header_len -= (4 + field_len);
+    }
+
+    return fields;
+}
+
+int readRecord(std::ifstream &rosbag, int &chunk_count) {
+    // Read Header
     int header_len = 0;
     rosbag.read(reinterpret_cast<char *>(&header_len), 4);
     LOG(INFO) << "Record Header Length = " << header_len << std::endl;
+    auto fields = readRecordHeader(rosbag, header_len);
+
+    int opval = 0;
+    if (fields.find("op") != fields.end()) {
+        opval = static_cast<int>(
+                *reinterpret_cast<uint8_t *>(fields["op"].get()));
+        LOG(INFO) << "opval = " << opval;
+    }
 
     // Read Header
     int retval = 0;
-    int opval = 0;
-
-    // Read op field
-    opval = readOp(rosbag, header_len);
 
     switch (opval) {
         case 3: {
             auto [index_pos, conn_count, chunk_count] =
-                    readBagHeader(rosbag, header_len);
+                    readBagHeader(rosbag, fields);
             retval = chunk_count;
         } break;
 
         case 5:
-            retval = readChunk(rosbag, header_len);
+            readChunk(rosbag, fields, chunk_count);
             break;
 
         case 7:
-            readConnection(rosbag, header_len);
+            readConnection(rosbag, fields);
             break;
 
         case 2:
-            readMessageData(rosbag, header_len);
+            readMessageData(rosbag, fields);
             break;
 
         case 4:
-            readIndexData(rosbag, header_len);
+            readIndexData(rosbag, fields);
             break;
 
         case 6:
-            readChunkInfo(rosbag, header_len);
+            readChunkInfo(rosbag, fields);
             break;
 
         default:
-            retval = 0;
             LOG(WARNING) << "No record reader for opval = " << opval;
             break;
     }
     return retval;
 }
 
-int readOp(std::ifstream &rosbag, int &header_len) {
-    std::string field_name;
-    int field_len = 0;
-    rosbag.read(reinterpret_cast<char *>(&field_len), 4);
+std::tuple<long int, int, int> readBagHeader(
+        std::ifstream &rosbag,
+        std::map<std::string, std::shared_ptr<char[]>> fields) {
+    LOG(WARNING) << "Reading Bag Header Record";
 
-    std::getline(rosbag, field_name, '=');
-    LOG_IF(WARNING, field_name != "op")
-            << "Expected op code at beginning of a record";
-
-    int op_val = 0;
-    rosbag.read(reinterpret_cast<char *>(&op_val), 1);
-    LOG(INFO) << field_name << " = " << op_val;
-
-    header_len -= (4 + field_len);
-    return op_val;
-}
-
-std::tuple<long int, int, int> readBagHeader(std::ifstream &rosbag,
-                                             int header_len) {
-    LOG(INFO) << "\nReading Bag Header Record";
-
-    std::string field_name;
-
-    long int index_pos = 0;
-    int conn_count = 0;
-    int chunk_count = 0;
-
-    std::tie(field_name, index_pos) = readField<long int>(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "index_pos")
+    LOG_IF(WARNING, fields.find("index_pos") == fields.end())
             << "Bag Header Record Header contains unexpected field";
+    auto index_pos = *reinterpret_cast<long int *>(fields["index_pos"].get());
+    LOG(INFO) << "index_pos = " << index_pos;
 
-    std::tie(field_name, conn_count) = readField<int>(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "conn_count")
+    LOG_IF(WARNING, fields.find("conn_count") == fields.end())
             << "Bag Header Record Header contains unexpected field";
+    auto conn_count = *reinterpret_cast<int *>(fields["conn_count"].get());
+    LOG(INFO) << "conn_count = " << conn_count;
 
-    std::tie(field_name, chunk_count) = readField<int>(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "chunk_count")
+    LOG_IF(WARNING, fields.find("chunk_count") == fields.end())
             << "Bag Header Record Header contains unexpected field";
-
-    LOG_IF(WARNING, header_len != 0)
-            << "Parsing of header for Bag Header Record incomplete";
+    auto chunk_count = *reinterpret_cast<int *>(fields["chunk_count"].get());
+    LOG(INFO) << "chunk_count = " << chunk_count;
 
     // Ignore Data
     int data_len = 0;
@@ -131,81 +133,81 @@ std::tuple<long int, int, int> readBagHeader(std::ifstream &rosbag,
     return std::make_tuple(index_pos, conn_count, chunk_count);
 }
 
-int readChunk(std::ifstream &rosbag, int header_len) {
-    LOG(INFO) << "\nReading Chunk Record";
+void readChunk(std::ifstream &rosbag,
+               std::map<std::string, std::shared_ptr<char[]>> fields,
+               int &chunk_count) {
+    LOG(WARNING) << "Reading Chunk Record";
+    chunk_count++;
 
-    auto [field_name, field_val] = readStringField(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "compression")
+    LOG_IF(WARNING, fields.find("compression") == fields.end())
             << "Chunk Record Header contains unexpected field";
+    auto compression = std::string(fields["compression"].get());
+    LOG(INFO) << "compression = "
+              << compression.substr(0, compression.size() - 2);
 
-    int uncompressed_chunk_size = 0;
-    std::tie(field_name, uncompressed_chunk_size) =
-            readField<int>(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "size")
+    LOG_IF(WARNING, fields.find("size") == fields.end())
             << "Chunk Record Header contains unexpected field";
-
-    LOG_IF(WARNING, header_len != 0)
-            << "Parsing of Chunk Record Header incomplete";
+    auto uncompressed_chunk_size =
+            *reinterpret_cast<int *>(fields["size"].get());
+    LOG(INFO) << "uncompressed_chunk_size = " << uncompressed_chunk_size;
 
     // Data
     int data_len = 0;
     rosbag.read(reinterpret_cast<char *>(&data_len), 4);
     LOG(INFO) << "Chunk Record - Data Length = " << data_len << "\n";
-
-    (void)readRecord(rosbag);  // Connection
-    (void)readRecord(rosbag);  // Message Data
-
-    return data_len;
 }
 
-void readConnection(std::ifstream &rosbag, int header_len) {
-    LOG(INFO) << "\nReading Connection Record";
+void readConnection(std::ifstream &rosbag,
+                    std::map<std::string, std::shared_ptr<char[]>> fields) {
+    LOG(WARNING) << "Reading Connection Record";
 
-    auto [field_name, field_val] = readStringField(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "topic")
+    LOG_IF(WARNING, fields.find("topic") == fields.end())
             << "Connection Record Header contains unexpected field";
+    auto topic = std::string(fields["topic"].get());
+    LOG(INFO) << "topic = " << topic.substr(0, topic.size());
 
-    int conn = 0;
-    std::tie(field_name, conn) = readField<int>(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "conn")
+    LOG_IF(WARNING, fields.find("conn") == fields.end())
             << "Connection Record Header contains unexpected field";
-
-    LOG_IF(WARNING, header_len != 0)
-            << "Parsing of Connection Record Header incomplete";
+    auto conn = *reinterpret_cast<int *>(fields["conn"].get());
+    LOG(INFO) << "conn = " << conn;
 
     // Data - Connection Header
     int data_len = 0;
     rosbag.read(reinterpret_cast<char *>(&data_len), 4);
     LOG(INFO) << "Connection Record - Data Length = " << data_len << "\n";
 
-    const std::set<std::string> expected_field_names{
-            "topic",    "type",    "md5sum", "message_definition",
-            "callerid", "latching"};
+    std::map<std::string, std::string> data_fields{
+            {"topic", ""},    {"type", ""},
+            {"md5sum", ""},   {"message_definition", ""},
+            {"callerid", ""}, {"latching", ""}};
 
+    std::string field_name;
+    std::string field_val;
     while (data_len != 0) {
         std::tie(field_name, field_val) = readStringField(rosbag, data_len);
-        LOG_IF(WARNING, expected_field_names.find(field_name) ==
-                                expected_field_names.end())
+        LOG_IF(WARNING, data_fields.find(field_name) == data_fields.end())
                 << "Connection Header contains unexpected field";
+        data_fields[field_name] = field_val;
+    }
+
+    if (data_fields["type"] != "sensor_msgs/PointCloud2") {
+        LOG(WARNING) << "Unrecognised Message Type";
     }
 }
 
-void readMessageData(std::ifstream &rosbag, int header_len) {
-    LOG(INFO) << "\nReading Message Data Record";
+void readMessageData(std::ifstream &rosbag,
+                     std::map<std::string, std::shared_ptr<char[]>> fields) {
+    LOG(WARNING) << "Reading Message Data Record";
 
-    std::string field_name;
-    int conn = 0;
-    std::tie(field_name, conn) = readField<int>(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "conn")
+    LOG_IF(WARNING, fields.find("conn") == fields.end())
             << "Message Data Record Header contains unexpected field";
+    auto conn = *reinterpret_cast<int *>(fields["conn"].get());
+    LOG(INFO) << "conn = " << conn;
 
-    long int time = 0;
-    std::tie(field_name, time) = readField<long int>(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "time")
+    LOG_IF(WARNING, fields.find("time") == fields.end())
             << "Message Data Record Header contains unexpected field";
-
-    LOG_IF(WARNING, header_len != 0)
-            << "Parsing of Message Data Record Header incomplete";
+    auto time = *reinterpret_cast<long int *>(fields["time"].get());
+    LOG(INFO) << "time = " << time;
 
     // Data - Serialized Message Data
     int data_len = 0;
@@ -215,26 +217,27 @@ void readMessageData(std::ifstream &rosbag, int header_len) {
     (void)readPointCloud2(rosbag, data_len);
 }
 
-void readIndexData(std::ifstream &rosbag, int header_len) {
-    LOG(INFO) << "\nReading Index Data Record";
+void readIndexData(std::ifstream &rosbag,
+                   std::map<std::string, std::shared_ptr<char[]>> fields) {
+    LOG(WARNING) << "Reading Index Data Record";
 
-    std::map<std::string, int> fields{{"conn", 0}, {"count", 0}, {"ver", 0}};
+    LOG_IF(WARNING, fields.find("conn") == fields.end())
+            << "Index Data Record Header contains unexpected field";
+    auto conn = *reinterpret_cast<int *>(fields["conn"].get());
+    LOG(INFO) << "conn = " << conn;
 
-    std::string field_name;
-    int field_val = 0;
-    for (int i = 0; i < 3; i++) {
-        std::tie(field_name, field_val) =
-                readField<typeof field_val>(rosbag, header_len);
-        LOG_IF(WARNING, fields.find(field_name) == fields.end())
-                << "Index Data Record Header contains unexpected field";
-        fields[field_name] = field_val;
-    }
+    LOG_IF(WARNING, fields.find("count") == fields.end())
+            << "Index Data Record Header contains unexpected field";
+    auto count = *reinterpret_cast<int *>(fields["count"].get());
+    LOG(INFO) << "count = " << count;
 
-    LOG_IF(WARNING, header_len != 0)
-            << "Parsing of Index Data Record Header incomplete";
+    LOG_IF(WARNING, fields.find("ver") == fields.end())
+            << "Index Data Record Header contains unexpected field";
+    auto ver = *reinterpret_cast<int *>(fields["ver"].get());
+    LOG(INFO) << "ver = " << ver;
 
-    LOG_IF(WARNING, fields["ver"] != 1)
-            << "Index Data Record version " << fields["ver"] << "not supported";
+    LOG_IF(WARNING, ver != 1)
+            << "Index Data Record version " << ver << "not supported";
 
     // Data
     int data_len = 0;
@@ -250,40 +253,36 @@ void readIndexData(std::ifstream &rosbag, int header_len) {
     LOG(INFO) << "offset = " << offset;
 }
 
-void readChunkInfo(std::ifstream &rosbag, int header_len) {
-    LOG(INFO) << "\nReading Chunk Info Record";
+void readChunkInfo(std::ifstream &rosbag,
+                   std::map<std::string, std::shared_ptr<char[]>> fields) {
+    LOG(WARNING) << "Reading Chunk Info Record";
 
-    std::string field_name;
-    int version = 0;
-    std::tie(field_name, version) = readField<int>(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "ver")
+    LOG_IF(WARNING, fields.find("ver") == fields.end())
             << "Chunk Info Record Header contains unexpected field";
+    auto ver = *reinterpret_cast<int *>(fields["ver"].get());
+    LOG(INFO) << "ver = " << ver;
+    LOG_IF(WARNING, ver != 1)
+            << "Chunk Info Record version " << ver << "not supported";
 
-    long int chunk_pos = 0;
-    std::tie(field_name, chunk_pos) = readField<long int>(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "chunk_pos")
+    LOG_IF(WARNING, fields.find("chunk_pos") == fields.end())
             << "Chunk Info Record Header contains unexpected field";
+    auto chunk_pos = *reinterpret_cast<long int *>(fields["chunk_pos"].get());
+    LOG(INFO) << "chunk_pos = " << chunk_pos;
 
-    long int start_time = 0;
-    std::tie(field_name, start_time) = readField<long int>(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "start_time")
+    LOG_IF(WARNING, fields.find("start_time") == fields.end())
             << "Chunk Info Record Header contains unexpected field";
+    auto start_time = *reinterpret_cast<long int *>(fields["start_time"].get());
+    LOG(INFO) << "start_time = " << start_time;
 
-    long int end_time = 0;
-    std::tie(field_name, end_time) = readField<long int>(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "end_time")
+    LOG_IF(WARNING, fields.find("end_time") == fields.end())
             << "Chunk Info Record Header contains unexpected field";
+    auto end_time = *reinterpret_cast<long int *>(fields["end_time"].get());
+    LOG(INFO) << "end_time = " << end_time;
 
-    int count = 0;
-    std::tie(field_name, count) = readField<int>(rosbag, header_len);
-    LOG_IF(WARNING, field_name != "count")
+    LOG_IF(WARNING, fields.find("count") == fields.end())
             << "Chunk Info Record Header contains unexpected field";
-
-    LOG_IF(WARNING, header_len != 0)
-            << "Parsing of Chunk Info Record Header incomplete";
-
-    LOG_IF(WARNING, version != 1)
-            << "Chunk Info Record version " << version << "not supported";
+    auto count = *reinterpret_cast<int *>(fields["count"].get());
+    LOG(INFO) << "count = " << count;
 
     // Data
     int data_len = 0;
