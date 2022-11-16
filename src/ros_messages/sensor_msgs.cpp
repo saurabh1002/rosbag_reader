@@ -94,7 +94,8 @@ std::vector<std::shared_ptr<PointField>> parsePointFieldMsg(
 
 void parsePointCloud2Msg(std::ifstream &rosbag,
                          int data_len,
-                         std::string &topic) {
+                         std::string &topic,
+                         std::string &pcl_save_path) {
     static int32_t count = 0;
     parseHeaderMsg(rosbag, data_len);
 
@@ -167,6 +168,6 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
                       field_names.emplace_back(field_ptr->getName());
                   });
 
-    savePointCloud(pointcloud2, field_names, "../" + topic, count);
+    savePointCloud(pointcloud2, field_names, pcl_save_path + topic, count);
     count++;
 }

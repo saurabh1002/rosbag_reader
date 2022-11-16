@@ -35,8 +35,8 @@ std::map<std::string, std::shared_ptr<char[]>> readRecordHeader(
 
 void readRecord(std::ifstream &rosbag,
                 int &chunk_count,
-                std::string &msg_type,
-                std::vector<std::tuple<std::string, std::string>> &connections);
+                std::vector<std::tuple<std::string, std::string>> &connections,
+                std::string &pcl_save_path);
 
 std::tuple<long int, int, int> readBagHeader(
         std::ifstream &rosbag,
@@ -49,14 +49,13 @@ void readChunk(std::ifstream &rosbag,
 void readConnection(
         std::ifstream &rosbag,
         std::map<std::string, std::shared_ptr<char[]>> fields,
-        std::string &msg_type,
         std::vector<std::tuple<std::string, std::string>> &connections);
 
 void readMessageData(
         std::ifstream &rosbag,
         std::map<std::string, std::shared_ptr<char[]>> fields,
-        std::string &msg_type,
-        std::vector<std::tuple<std::string, std::string>> &connections);
+        std::vector<std::tuple<std::string, std::string>> &connections,
+        std::string &pcl_save_path);
 
 void readIndexData(std::ifstream &rosbag,
                    std::map<std::string, std::shared_ptr<char[]>> fields);

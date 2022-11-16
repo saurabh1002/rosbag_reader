@@ -1,0 +1,4 @@
+%YAML:1.0
+
+rosbag_path: "../bags/multiple_topics.bag"
+pcl_save_path: "../results"

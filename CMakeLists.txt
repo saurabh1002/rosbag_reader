@@ -1,7 +1,6 @@
 # Specify minimum cmake version required
 cmake_minimum_required(VERSION 3.12.0)
-project(rosbag_reader DESCRIPTION "Read ROS1 bag files using only c++" LANGUAGES C CXX)
-
+project(rosbag_reader DESCRIPTION "Read ROSv1 bag files using plain C++" LANGUAGES C CXX)
 
 find_package(glog REQUIRED)
 
@@ -17,7 +16,6 @@ endif()
 # Unit Test, Code Coverage, clang-format, clan-tidy, cppcheck Configuration:
 option(ENABLE_CLANG_FORMAT "Enable static analysis with clang-format" OFF)
 option(ENABLE_CLANG_TIDY "Enable static analysis with clang-tidy" OFF)
-option(USE_SYSTEM_EIGEN "Use Eigen3 from the system" OFF)
 
 set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/cmake)
 

@@ -57,4 +57,5 @@ std::vector<std::shared_ptr<PointField>> parsePointFieldMsg(
 
 void parsePointCloud2Msg(std::ifstream& rosbag,
                          int data_len,
-                         std::string& topic);
+                         std::string& topic,
+                         std::string& pcl_save_path);

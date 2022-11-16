@@ -8,15 +8,21 @@
 
 #include "bag_utils.hpp"
 #include "indicators/progress_bar.hpp"
+#include "yaml-cpp/yaml.h"
 
 int main(int argc, char *argv[]) {
     google::InitGoogleLogging("rosbag_reader");
 
-    std::string const rosbag_path = argv[1];
+    YAML::Node config = YAML::LoadFile(argv[1]);
+
+    auto rosbag_path = config["rosbag_path"].as<std::string>();
     std::ifstream rosbag(rosbag_path,
                          std::ios_base::in | std::ios_base::binary);
+
+    auto pcl_save_path = config["pcl_save_path"].as<std::string>();
+
     if (!rosbag) {
-        LOG(FATAL) << "Rosbag could not be opened, please check rosbag path";
+        LOG(FATAL) << "Rosbag could not be opened, please check rosbag path: ";
         return 1;
     }
 
@@ -56,14 +62,13 @@ int main(int argc, char *argv[]) {
             indicators::option::FontStyles{std::vector<indicators::FontStyle>{
                     indicators::FontStyle::bold}}};
 
-    std::string msg_type;
     while (true) {
         if (rosbag.eof()) {
             LOG(WARNING) << "End of File reached";
             break;
         }
 
-        readRecord(rosbag, chunk_count, msg_type, connections);
+        readRecord(rosbag, chunk_count, connections, pcl_save_path);
 
         pbar.set_option(indicators::option::PostfixText{
                 std::to_string(chunk_count) + "/" +

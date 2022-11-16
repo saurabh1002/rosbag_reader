@@ -55,11 +55,10 @@ std::map<std::string, std::shared_ptr<char[]>> readRecordHeader(
     return fields;
 }
 
-void readRecord(
-        std::ifstream &rosbag,
-        int &chunk_count,
-        std::string &msg_type,
-        std::vector<std::tuple<std::string, std::string>> &connections) {
+void readRecord(std::ifstream &rosbag,
+                int &chunk_count,
+                std::vector<std::tuple<std::string, std::string>> &connections,
+                std::string &pcl_save_path) {
     // Read Header
     int header_len = 0;
     rosbag.read(reinterpret_cast<char *>(&header_len), 4);
@@ -86,11 +85,11 @@ void readRecord(
             break;
 
         case 7:
-            readConnection(rosbag, fields, msg_type, connections);
+            readConnection(rosbag, fields, connections);
             break;
 
         case 2:
-            readMessageData(rosbag, fields, msg_type, connections);
+            readMessageData(rosbag, fields, connections, pcl_save_path);
             break;
 
         case 4:
@@ -163,7 +162,6 @@ void readChunk(std::ifstream &rosbag,
 void readConnection(
         std::ifstream &rosbag,
         std::map<std::string, std::shared_ptr<char[]>> fields,
-        std::string &msg_type,
         std::vector<std::tuple<std::string, std::string>> &connections) {
     DLOG(WARNING) << "Reading Connection Record";
 
@@ -195,15 +193,15 @@ void readConnection(
                 << "Connection Header contains unexpected field";
         data_fields[field_name] = field_val;
     }
-    msg_type = data_fields["type"];
-    connections.emplace_back(std::move(std::make_tuple(msg_type, topic)));
+    connections.emplace_back(
+            std::move(std::make_tuple(data_fields["type"], topic)));
 }
 
 void readMessageData(
         std::ifstream &rosbag,
         std::map<std::string, std::shared_ptr<char[]>> fields,
-        std::string &msg_type,
-        std::vector<std::tuple<std::string, std::string>> &connections) {
+        std::vector<std::tuple<std::string, std::string>> &connections,
+        std::string &pcl_save_path) {
     DLOG(WARNING) << "Reading Message Data Record";
 
     LOG_IF(WARNING, fields.find("conn") == fields.end())
@@ -222,14 +220,13 @@ void readMessageData(
     rosbag.read(reinterpret_cast<char *>(&data_len), 4);
     DLOG(INFO) << "Message Data Record - Data Length =" << data_len;
 
-    std::string topic;
-    std::tie(msg_type, topic) = connections[conn];
+    auto [msg_type, topic] = connections[conn];
     if (msg_type != "sensor_msgs/PointCloud2") {
         LOG(WARNING) << "MSG TYPE" << msg_type.c_str();
         rosbag.ignore(data_len);
         return;
     }
-    parsePointCloud2Msg(rosbag, data_len, topic);
+    parsePointCloud2Msg(rosbag, data_len, topic, pcl_save_path);
 }
 
 void readIndexData(std::ifstream &rosbag,

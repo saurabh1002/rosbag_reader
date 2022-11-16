@@ -10,3 +10,4 @@ if(SILENCE_WARNINGS)
 endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/indicators/indicators.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/yaml-cpp/yaml-cpp.cmake)
