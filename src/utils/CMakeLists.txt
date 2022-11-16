@@ -1,14 +1,6 @@
-add_library(header_msg STATIC ${CMAKE_CURRENT_SOURCE_DIR}/header.cpp)
-add_library(pointfield_msg STATIC ${CMAKE_CURRENT_SOURCE_DIR}/pointField.cpp)
-add_library(pcl2_msg STATIC ${CMAKE_CURRENT_SOURCE_DIR}/pointcloud2.cpp)
-add_library(savepcd STATIC ${CMAKE_CURRENT_SOURCE_DIR}/savePCD.cpp)
+add_library(io_utils STATIC ${CMAKE_CURRENT_SOURCE_DIR}/io_utils.cpp)
+target_include_directories(io_utils PUBLIC ${CMAKE_SOURCE_DIR}/includes/utils)
 
-target_include_directories(header_msg PUBLIC ${CMAKE_SOURCE_DIR}/includes)
-target_include_directories(pointfield_msg PUBLIC ${CMAKE_SOURCE_DIR}/includes)
-target_include_directories(savepcd PUBLIC ${CMAKE_SOURCE_DIR}/includes)
-
-target_link_libraries(pcl2_msg PUBLIC pointfield_msg header_msg savepcd)
-
-add_library(utils STATIC ${CMAKE_CURRENT_SOURCE_DIR}/utils.cpp)
-target_link_libraries(utils PUBLIC pcl2_msg glog::glog)
-target_include_directories(utils PUBLIC ${CMAKE_SOURCE_DIR}/includes/)
+add_library(bag_utils STATIC ${CMAKE_CURRENT_SOURCE_DIR}/bag_utils.cpp)
+target_link_libraries(bag_utils PUBLIC std_msgs sensor_msgs glog::glog)
+target_include_directories(bag_utils PUBLIC ${CMAKE_SOURCE_DIR}/includes/utils)

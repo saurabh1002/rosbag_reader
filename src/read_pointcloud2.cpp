@@ -4,11 +4,12 @@
 #include <iostream>
 #include <map>
 #include <string>
+#include <tuple>
 
+#include "bag_utils.hpp"
 #include "indicators/progress_bar.hpp"
-#include "utils.hpp"
 
-int main(int argc, char* argv[]) {
+int main(int argc, char *argv[]) {
     google::InitGoogleLogging("rosbag_reader");
 
     std::string const rosbag_path = argv[1];
@@ -26,11 +27,22 @@ int main(int argc, char* argv[]) {
         return 1;
     }
 
+    // Read Bag Header Record
+    int header_len = 0;
+    rosbag.read(reinterpret_cast<char *>(&header_len), 4);
+    DLOG(INFO) << "Record Header Length = " << header_len << std::endl;
+
     int chunk_count = 0;
-    auto num_of_chunks = readRecord(rosbag, chunk_count);
+    auto fields = readRecordHeader(rosbag, header_len);
+    LOG_IF(WARNING, fields.find("op") == fields.end())
+            << "OP Code not found in bag header record header";
+    auto [index_pos, conn_count, num_of_chunks] = readBagHeader(rosbag, fields);
+
+    std::vector<std::tuple<std::string, std::string>> connections;
+    connections.reserve(conn_count);
 
     indicators::ProgressBar pbar{
-            indicators::option::BarWidth{40},
+            indicators::option::BarWidth{50},
             indicators::option::Start{"["},
             indicators::option::Fill{"■"},
             indicators::option::Lead{"■"},
@@ -44,13 +56,14 @@ int main(int argc, char* argv[]) {
             indicators::option::FontStyles{std::vector<indicators::FontStyle>{
                     indicators::FontStyle::bold}}};
 
+    std::string msg_type;
     while (true) {
         if (rosbag.eof()) {
             LOG(WARNING) << "End of File reached";
             break;
         }
 
-        (void)readRecord(rosbag, chunk_count);
+        readRecord(rosbag, chunk_count, msg_type, connections);
 
         pbar.set_option(indicators::option::PostfixText{
                 std::to_string(chunk_count) + "/" +

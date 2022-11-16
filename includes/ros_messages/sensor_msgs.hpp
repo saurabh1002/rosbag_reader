@@ -1,9 +1,10 @@
+#pragma once
+
 #include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace PointField {
 class PointField {
 public:
     virtual void readDataFromStream(std::ifstream& rosbag) = 0;
@@ -48,8 +49,12 @@ void insertPointField(const std::string& name,
                       unsigned long size,
                       std::vector<std::shared_ptr<PointField>>& fields_ptr);
 
-std::vector<std::shared_ptr<PointField>> read(std::ifstream& rosbag,
-                                              int& data_len,
-                                              unsigned long size,
-                                              int32_t num_point_fields);
-}  // namespace PointField
+std::vector<std::shared_ptr<PointField>> parsePointFieldMsg(
+        std::ifstream& rosbag,
+        int& data_len,
+        unsigned long size,
+        int32_t num_point_fields);
+
+void parsePointCloud2Msg(std::ifstream& rosbag,
+                         int data_len,
+                         std::string& topic);
