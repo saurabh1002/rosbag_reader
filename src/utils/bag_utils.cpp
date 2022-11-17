@@ -221,12 +221,13 @@ void readMessageData(
     DLOG(INFO) << "Message Data Record - Data Length =" << data_len;
 
     auto [msg_type, topic] = connections[conn];
-    if (msg_type != "sensor_msgs/PointCloud2") {
-        LOG(WARNING) << "MSG TYPE" << msg_type.c_str();
-        rosbag.ignore(data_len);
+
+    if (msg_type == "sensor_msgs/PointCloud2") {
+        parsePointCloud2Msg(rosbag, data_len, topic, pcl_save_path);
         return;
     }
-    parsePointCloud2Msg(rosbag, data_len, topic, pcl_save_path);
+    LOG(WARNING) << "MSG TYPE" << msg_type.c_str();
+    rosbag.ignore(data_len);
 }
 
 void readIndexData(std::ifstream &rosbag,

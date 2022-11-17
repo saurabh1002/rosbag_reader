@@ -96,7 +96,11 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
                          int data_len,
                          std::string &topic,
                          std::string &pcl_save_path) {
-    static int32_t count = 0;
+    static std::map<std::string, int32_t> count_per_topic;
+    if (count_per_topic.find(topic) == count_per_topic.end()) {
+        count_per_topic.insert({topic, 0});
+    }
+
     parseHeaderMsg(rosbag, data_len);
 
     uint32_t height = 0;
@@ -140,11 +144,11 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
     uint32_t offset_ptr = 0;
     for (int row = 0; row < height; row++) {
         for (int col = 0; col < width; col++) {
-            for (int field_num = 0; field_num < num_point_fields; field_num++) {
-                rosbag.ignore(fields_ptr[field_num]->getOffset() - offset_ptr);
-                fields_ptr[field_num]->readDataFromStream(rosbag);
-                offset_ptr += (fields_ptr[field_num]->sizeofData() +
-                               fields_ptr[field_num]->getOffset() - offset_ptr);
+            for (auto &field_ptr : fields_ptr) {
+                rosbag.ignore(field_ptr->getOffset() - offset_ptr);
+                field_ptr->readDataFromStream(rosbag);
+                offset_ptr += (field_ptr->sizeofData() +
+                               field_ptr->getOffset() - offset_ptr);
             }
             rosbag.ignore(point_step - offset_ptr);
             offset_ptr = 0;
@@ -168,6 +172,7 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
                       field_names.emplace_back(field_ptr->getName());
                   });
 
-    savePointCloud(pointcloud2, field_names, pcl_save_path + topic, count);
-    count++;
+    savePointCloud(pointcloud2, field_names, pcl_save_path + topic,
+                   count_per_topic[topic]);
+    count_per_topic[topic] += 1;
 }
