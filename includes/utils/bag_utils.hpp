@@ -3,7 +3,6 @@
 #include <glog/logging.h>
 
 #include <fstream>
-#include <iostream>
 #include <map>
 #include <memory>
 #include <string>

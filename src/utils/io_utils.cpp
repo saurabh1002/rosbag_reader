@@ -1,9 +1,7 @@
 #include "io_utils.hpp"
 
-#include <algorithm>
 #include <filesystem>
 #include <fstream>
-#include <iostream>
 #include <string>
 #include <vector>
 
@@ -43,20 +41,15 @@ void savePointCloud(const std::vector<std::vector<double>>& data,
             << "format binary_little_endian 1.0\n";
     ply_out << "comment Created by SSG\n";
     ply_out << "element vertex " << data[0].size() << "\n";
-    std::for_each(field_names.cbegin(), field_names.cend(),
-                  [&ply_out](auto name) {
-                      ply_out << "property double " << name << "\n";
-                  });
+    for (const auto& name : field_names) {
+        ply_out << "property double " << name << "\n";
+    }
     ply_out << "end_header\n";
 
     auto points = transpose(data);
-    std::for_each(points.cbegin(), points.cend(),
-                  [&ply_out](const std::vector<double>& point) {
-                      std::for_each(point.cbegin(), point.cend(),
-                                    [&ply_out](double val) {
-                                        ply_out.write(
-                                                reinterpret_cast<char*>(&val),
-                                                sizeof(val));
-                                    });
-                  });
+    for (auto& point : points) {
+        for (auto val : point) {
+            ply_out.write(reinterpret_cast<char*>(&val), sizeof(val));
+        }
+    }
 }
