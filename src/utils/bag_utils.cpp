@@ -37,9 +37,10 @@ std::tuple<std::string, std::string> readStringField(std::ifstream &rosbag,
 
 std::map<std::string, std::shared_ptr<char[]>> readRecordHeader(
         std::ifstream &rosbag, int &header_len) {
-    std::map<std::string, std::shared_ptr<char[]>> fields;
-    std::string field_name;
     int field_len = 0;
+    std::string field_name;
+    std::map<std::string, std::shared_ptr<char[]>> fields;
+
     while (header_len != 0) {
         rosbag.read(reinterpret_cast<char *>(&field_len), 4);
         std::getline(rosbag, field_name, '=');
@@ -48,7 +49,7 @@ std::map<std::string, std::shared_ptr<char[]>> readRecordHeader(
 
         std::shared_ptr<char[]> buffer(new char[field_val_nbytes]);
         rosbag.read(buffer.get(), field_val_nbytes);
-        fields.insert({{field_name, buffer}});
+        fields.insert({{field_name, std::move(buffer)}});
         header_len -= (4 + field_len);
     }
 
