@@ -142,35 +142,29 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
     DLOG(INFO) << "length of data[]: " << len_data_field;
 
     uint32_t offset_ptr = 0;
-    for (int row = 0; row < height; row++) {
-        for (int col = 0; col < width; col++) {
-            for (auto &field_ptr : fields_ptr) {
-                rosbag.ignore(field_ptr->getOffset() - offset_ptr);
-                field_ptr->readDataFromStream(rosbag);
-                offset_ptr += (field_ptr->sizeofData() +
-                               field_ptr->getOffset() - offset_ptr);
-            }
-            rosbag.ignore(point_step - offset_ptr);
-            offset_ptr = 0;
+    for (int i = 0; i < height * width; i++) {
+        for (auto &field_ptr : fields_ptr) {
+            rosbag.ignore(field_ptr->getOffset() - offset_ptr);
+            field_ptr->readDataFromStream(rosbag);
+            offset_ptr += (field_ptr->sizeofData() + field_ptr->getOffset() -
+                           offset_ptr);
         }
+        rosbag.ignore(point_step - offset_ptr);
+        offset_ptr = 0;
     }
 
     bool is_dense = false;
     rosbag.read(reinterpret_cast<char *>(&is_dense), sizeof(is_dense));
     DLOG(INFO) << "is_dense: " << static_cast<int>(is_dense);
 
-    std::vector<std::vector<double>> pointcloud2;
-    std::for_each(fields_ptr.cbegin(), fields_ptr.cend(),
-                  [&pointcloud2](auto field_ptr) {
-                      pointcloud2.emplace_back(field_ptr->getData());
-                  });
-
     std::vector<std::string> field_names;
+    std::vector<std::vector<double>> pointcloud2;
     field_names.reserve(num_point_fields);
-    std::for_each(fields_ptr.cbegin(), fields_ptr.cend(),
-                  [&field_names](auto field_ptr) {
-                      field_names.emplace_back(field_ptr->getName());
-                  });
+    pointcloud2.reserve(num_point_fields);
+    for (auto &field_ptr : fields_ptr) {
+        pointcloud2.emplace_back(field_ptr->getData());
+        field_names.emplace_back(field_ptr->getName());
+    }
 
     savePointCloud(pointcloud2, field_names, pcl_save_path + topic,
                    count_per_topic[topic]);

@@ -30,7 +30,10 @@ void savePointCloud(const std::vector<std::vector<double>>& data,
                     const std::string& output_path,
                     int32_t idx) {
     const std::filesystem::path out_path(output_path);
-    std::filesystem::create_directories(out_path);
+    if (!std::filesystem::is_directory(out_path)) {
+        std::filesystem::create_directories(out_path);
+    }
+
     std::ofstream ply_out;
     const std::string filename = std::to_string(idx) + ".ply";
     ply_out.open(out_path / filename,
