@@ -47,11 +47,15 @@ void insertPointField(const std::string &name,
             break;
 
         case 7:
+            LOG_IF(FATAL, sizeof(float) != 4)
+                    << "float datatype expected to be 4 bytes long";
             fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
                     new TypedPointFieldMsg<float>(name, offset, size)));
             break;
 
         case 8:
+            LOG_IF(FATAL, sizeof(double) != 8)
+                    << "double datatype expected to be 8 bytes long";
             fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
                     new TypedPointFieldMsg<double>(name, offset, size)));
             break;
