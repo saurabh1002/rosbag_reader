@@ -11,7 +11,7 @@
 
 #include "sensor_msgs.hpp"
 
-void readString(std::ifstream &rosbag, std::string &str, int n_bytes) {
+void readString(std::ifstream &rosbag, std::string &str, const int n_bytes) {
     std::unique_ptr<char[]> const buffer(new char[n_bytes + 1]);
     buffer.get()[n_bytes] = '\0';
     rosbag.read(buffer.get(), n_bytes);
@@ -57,7 +57,7 @@ std::map<std::string, std::shared_ptr<char[]>> readRecordHeader(
 void readRecord(std::ifstream &rosbag,
                 int &chunk_count,
                 std::vector<std::tuple<std::string, std::string>> &connections,
-                std::string &pcl_save_path) {
+                const std::string &pcl_save_path) {
     // Read Header
     int header_len = 0;
     rosbag.read(reinterpret_cast<char *>(&header_len), 4);
@@ -80,23 +80,23 @@ void readRecord(std::ifstream &rosbag,
             break;
 
         case 5:
-            readChunk(rosbag, fields, chunk_count);
+            readChunkRecord(rosbag, fields, chunk_count);
             break;
 
         case 7:
-            readConnection(rosbag, fields, connections);
+            readConnectionRecord(rosbag, fields, connections);
             break;
 
         case 2:
-            readMessageData(rosbag, fields, connections, pcl_save_path);
+            readMessageDataRecord(rosbag, fields, connections, pcl_save_path);
             break;
 
         case 4:
-            readIndexData(rosbag, fields);
+            readIndexDataRecord(rosbag, fields);
             break;
 
         case 6:
-            readChunkInfo(rosbag, fields);
+            readChunkInfoRecord(rosbag, fields);
             break;
 
         default:
@@ -105,7 +105,7 @@ void readRecord(std::ifstream &rosbag,
     }
 }
 
-std::tuple<long int, int, int> readBagHeader(
+std::tuple<long int, int, int> readBagHeaderRecord(
         std::ifstream &rosbag,
         std::map<std::string, std::shared_ptr<char[]>> fields) {
     DLOG(WARNING) << "Reading Bag Header Record";
@@ -134,9 +134,9 @@ std::tuple<long int, int, int> readBagHeader(
     return std::make_tuple(index_pos, conn_count, chunk_count);
 }
 
-void readChunk(std::ifstream &rosbag,
-               std::map<std::string, std::shared_ptr<char[]>> fields,
-               int &chunk_count) {
+void readChunkRecord(std::ifstream &rosbag,
+                     std::map<std::string, std::shared_ptr<char[]>> fields,
+                     int &chunk_count) {
     DLOG(WARNING) << "Reading Chunk Record";
     chunk_count++;
 
@@ -158,7 +158,7 @@ void readChunk(std::ifstream &rosbag,
     DLOG(INFO) << "Chunk Record - Data Length = " << data_len << "\n";
 }
 
-void readConnection(
+void readConnectionRecord(
         std::ifstream &rosbag,
         std::map<std::string, std::shared_ptr<char[]>> fields,
         std::vector<std::tuple<std::string, std::string>> &connections) {
@@ -196,11 +196,11 @@ void readConnection(
             std::move(std::make_tuple(data_fields["type"], topic)));
 }
 
-void readMessageData(
+void readMessageDataRecord(
         std::ifstream &rosbag,
         std::map<std::string, std::shared_ptr<char[]>> fields,
         std::vector<std::tuple<std::string, std::string>> &connections,
-        std::string &pcl_save_path) {
+        const std::string &pcl_save_path) {
     DLOG(WARNING) << "Reading Message Data Record";
 
     LOG_IF(WARNING, fields.find("conn") == fields.end())
@@ -229,8 +229,9 @@ void readMessageData(
     rosbag.ignore(data_len);
 }
 
-void readIndexData(std::ifstream &rosbag,
-                   std::map<std::string, std::shared_ptr<char[]>> fields) {
+void readIndexDataRecord(
+        std::ifstream &rosbag,
+        std::map<std::string, std::shared_ptr<char[]>> fields) {
     DLOG(WARNING) << "Reading Index Data Record";
 
     LOG_IF(WARNING, fields.find("conn") == fields.end())
@@ -266,8 +267,9 @@ void readIndexData(std::ifstream &rosbag,
     }
 }
 
-void readChunkInfo(std::ifstream &rosbag,
-                   std::map<std::string, std::shared_ptr<char[]>> fields) {
+void readChunkInfoRecord(
+        std::ifstream &rosbag,
+        std::map<std::string, std::shared_ptr<char[]>> fields) {
     DLOG(WARNING) << "Reading Chunk Info Record";
 
     LOG_IF(WARNING, fields.find("ver") == fields.end())

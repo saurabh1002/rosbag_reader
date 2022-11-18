@@ -40,7 +40,8 @@ int main(int argc, char *argv[]) {
     auto fields = readRecordHeader(rosbag, header_len);
     LOG_IF(WARNING, fields.find("op") == fields.end())
             << "OP Code not found in bag header record header";
-    auto [index_pos, conn_count, num_of_chunks] = readBagHeader(rosbag, fields);
+    auto [index_pos, conn_count, num_of_chunks] =
+            readBagHeaderRecord(rosbag, fields);
 
     std::vector<std::tuple<std::string, std::string>> connections;
     connections.reserve(conn_count);

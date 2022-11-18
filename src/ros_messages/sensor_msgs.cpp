@@ -11,54 +11,54 @@
 #include "std_msgs.hpp"
 
 void insertPointField(const std::string &name,
-                      uint32_t offset,
+                      const uint32_t offset,
                       const uint8_t datatype,
                       const unsigned long size,
-                      std::vector<std::shared_ptr<PointField>> &fields_ptr) {
+                      std::vector<std::shared_ptr<PointFieldMsg>> &fields_ptr) {
     switch (datatype) {
         case 1:
-            fields_ptr.emplace_back(std::shared_ptr<PointField>(
-                    new TypedPointField<int8_t>(name, offset, size)));
+            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
+                    new TypedPointFieldMsg<int8_t>(name, offset, size)));
             break;
 
         case 2:
-            fields_ptr.emplace_back(std::shared_ptr<PointField>(
-                    new TypedPointField<uint8_t>(name, offset, size)));
+            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
+                    new TypedPointFieldMsg<uint8_t>(name, offset, size)));
             break;
 
         case 3:
-            fields_ptr.emplace_back(std::shared_ptr<PointField>(
-                    new TypedPointField<int16_t>(name, offset, size)));
+            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
+                    new TypedPointFieldMsg<int16_t>(name, offset, size)));
             break;
 
         case 4:
-            fields_ptr.emplace_back(std::shared_ptr<PointField>(
-                    new TypedPointField<uint16_t>(name, offset, size)));
+            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
+                    new TypedPointFieldMsg<uint16_t>(name, offset, size)));
             break;
 
         case 5:
-            fields_ptr.emplace_back(std::shared_ptr<PointField>(
-                    new TypedPointField<int32_t>(name, offset, size)));
+            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
+                    new TypedPointFieldMsg<int32_t>(name, offset, size)));
             break;
 
         case 6:
-            fields_ptr.emplace_back(std::shared_ptr<PointField>(
-                    new TypedPointField<uint32_t>(name, offset, size)));
+            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
+                    new TypedPointFieldMsg<uint32_t>(name, offset, size)));
             break;
 
         case 7:
-            fields_ptr.emplace_back(std::shared_ptr<PointField>(
-                    new TypedPointField<float>(name, offset, size)));
+            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
+                    new TypedPointFieldMsg<float>(name, offset, size)));
             break;
 
         case 8:
-            fields_ptr.emplace_back(std::shared_ptr<PointField>(
-                    new TypedPointField<double>(name, offset, size)));
+            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
+                    new TypedPointFieldMsg<double>(name, offset, size)));
             break;
     }
 }
 
-std::vector<std::shared_ptr<PointField>> parsePointFieldMsg(
+std::vector<std::shared_ptr<PointFieldMsg>> parsePointFieldMsg(
         std::ifstream &rosbag,
         int &data_len,
         unsigned long size,
@@ -68,7 +68,7 @@ std::vector<std::shared_ptr<PointField>> parsePointFieldMsg(
     uint8_t datatype = 0;
     uint32_t count = 0;
 
-    std::vector<std::shared_ptr<PointField>> fields_ptr;
+    std::vector<std::shared_ptr<PointFieldMsg>> fields_ptr;
     fields_ptr.reserve(num_point_fields);
 
     for (int i = 0; i < num_point_fields; i++) {
@@ -93,8 +93,8 @@ std::vector<std::shared_ptr<PointField>> parsePointFieldMsg(
 
 void parsePointCloud2Msg(std::ifstream &rosbag,
                          int data_len,
-                         std::string &topic,
-                         std::string &pcl_save_path) {
+                         const std::string &topic,
+                         const std::string &pcl_save_path) {
     static std::map<std::string, int32_t> count_per_topic;
     if (count_per_topic.find(topic) == count_per_topic.end()) {
         count_per_topic.insert({topic, 0});
@@ -165,7 +165,7 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
         field_names.emplace_back(field_ptr->getName());
     }
 
-    savePointCloud(pointcloud2, field_names, pcl_save_path + topic,
-                   count_per_topic[topic]);
+    savePointCloudAsPLY(pointcloud2, field_names, pcl_save_path + topic,
+                        count_per_topic[topic]);
     count_per_topic[topic] += 1;
 }

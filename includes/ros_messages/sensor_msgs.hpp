@@ -5,22 +5,22 @@
 #include <string>
 #include <vector>
 
-class PointField {
+class PointFieldMsg {
 public:
     virtual void readDataFromStream(std::ifstream& rosbag) = 0;
     virtual std::vector<double> getData() = 0;
     virtual const std::string& getName() = 0;
     virtual uint32_t getOffset() = 0;
     virtual uint32_t sizeofData() = 0;
-    virtual ~PointField() = default;
+    virtual ~PointFieldMsg() = default;
 };
 
 template <class T>
-class TypedPointField : public PointField {
+class TypedPointFieldMsg : public PointFieldMsg {
 public:
-    TypedPointField(const std::string& name,
-                    uint32_t offset,
-                    unsigned long size)
+    TypedPointFieldMsg(const std::string& name,
+                       uint32_t offset,
+                       unsigned long size)
         : name_(name), offset_(offset) {
         data_vec_.reserve(size);
     }
@@ -47,9 +47,9 @@ void insertPointField(const std::string& name,
                       uint32_t offset,
                       uint8_t datatype,
                       unsigned long size,
-                      std::vector<std::shared_ptr<PointField>>& fields_ptr);
+                      std::vector<std::shared_ptr<PointFieldMsg>>& fields_ptr);
 
-std::vector<std::shared_ptr<PointField>> parsePointFieldMsg(
+std::vector<std::shared_ptr<PointFieldMsg>> parsePointFieldMsg(
         std::ifstream& rosbag,
         int& data_len,
         unsigned long size,
@@ -57,5 +57,5 @@ std::vector<std::shared_ptr<PointField>> parsePointFieldMsg(
 
 void parsePointCloud2Msg(std::ifstream& rosbag,
                          int data_len,
-                         std::string& topic,
-                         std::string& pcl_save_path);
+                         const std::string& topic,
+                         const std::string& pcl_save_path);

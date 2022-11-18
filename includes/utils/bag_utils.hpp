@@ -35,29 +35,29 @@ std::map<std::string, std::shared_ptr<char[]>> readRecordHeader(
 void readRecord(std::ifstream &rosbag,
                 int &chunk_count,
                 std::vector<std::tuple<std::string, std::string>> &connections,
-                std::string &pcl_save_path);
+                const std::string &pcl_save_path);
 
-std::tuple<long int, int, int> readBagHeader(
+std::tuple<long int, int, int> readBagHeaderRecord(
         std::ifstream &rosbag,
         std::map<std::string, std::shared_ptr<char[]>> fields);
 
-void readChunk(std::ifstream &rosbag,
-               std::map<std::string, std::shared_ptr<char[]>> fields,
-               int &chunk_count);
+void readChunkRecord(std::ifstream &rosbag,
+                     std::map<std::string, std::shared_ptr<char[]>> fields,
+                     int &chunk_count);
 
-void readConnection(
+void readConnectionRecord(
         std::ifstream &rosbag,
         std::map<std::string, std::shared_ptr<char[]>> fields,
         std::vector<std::tuple<std::string, std::string>> &connections);
 
-void readMessageData(
+void readMessageDataRecord(
         std::ifstream &rosbag,
         std::map<std::string, std::shared_ptr<char[]>> fields,
         std::vector<std::tuple<std::string, std::string>> &connections,
-        std::string &pcl_save_path);
+        const std::string &pcl_save_path);
 
-void readIndexData(std::ifstream &rosbag,
-                   std::map<std::string, std::shared_ptr<char[]>> fields);
+void readIndexDataRecord(std::ifstream &rosbag,
+                         std::map<std::string, std::shared_ptr<char[]>> fields);
 
-void readChunkInfo(std::ifstream &rosbag,
-                   std::map<std::string, std::shared_ptr<char[]>> fields);
+void readChunkInfoRecord(std::ifstream &rosbag,
+                         std::map<std::string, std::shared_ptr<char[]>> fields);
