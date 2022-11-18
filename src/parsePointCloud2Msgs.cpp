@@ -4,8 +4,8 @@
 #include <string>
 #include <tuple>
 
-#include "bag_utils.hpp"
 #include "indicators/progress_bar.hpp"
+#include "rosbag.hpp"
 #include "yaml-cpp/yaml.h"
 
 int main(int argc, char *argv[]) {

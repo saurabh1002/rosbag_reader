@@ -23,5 +23,6 @@ Checks: '*,
 -hicpp-uppercase-literal-suffix,
 -readability-uppercase-literal-suffix,
 -cppcoreguidelines-pro-type-reinterpret-cast,
+-altera-unroll-loops,
 '
 HeaderFilterRegex: '.*'

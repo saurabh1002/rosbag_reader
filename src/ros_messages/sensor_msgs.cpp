@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "bag_utils.hpp"
-#include "io_utils.hpp"
+#include "io.hpp"
+#include "parse.hpp"
 #include "std_msgs.hpp"
 
 void insertPointField(const std::string &name,

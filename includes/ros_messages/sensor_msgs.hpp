@@ -8,19 +8,19 @@
 class PointFieldMsg {
 public:
     virtual void readDataFromStream(std::ifstream& rosbag) = 0;
-    virtual std::vector<double> getData() = 0;
-    virtual const std::string& getName() = 0;
-    virtual uint32_t getOffset() = 0;
-    virtual uint32_t sizeofData() = 0;
+    virtual std::vector<double> getData() const = 0;
+    virtual const std::string& getName() const = 0;
+    virtual uint32_t getOffset() const = 0;
+    virtual uint32_t sizeofData() const = 0;
     virtual ~PointFieldMsg() = default;
 };
 
 template <class T>
 class TypedPointFieldMsg : public PointFieldMsg {
 public:
-    TypedPointFieldMsg(const std::string& name,
-                       uint32_t offset,
-                       unsigned long size)
+    explicit TypedPointFieldMsg(const std::string& name,
+                                uint32_t offset,
+                                unsigned long size)
         : name_(name), offset_(offset) {
         data_vec_.reserve(size);
     }
@@ -30,10 +30,10 @@ public:
         data_vec_.emplace_back(static_cast<double>(data_));
     }
 
-    const std::string& getName() override { return name_; }
-    uint32_t getOffset() override { return offset_; }
-    std::vector<double> getData() override { return data_vec_; }
-    uint32_t sizeofData() override { return sizeof(T); }
+    const std::string& getName() const override { return name_; }
+    uint32_t getOffset() const override { return offset_; }
+    std::vector<double> getData() const override { return data_vec_; }
+    uint32_t sizeofData() const override { return sizeof(T); }
 
 private:
     std::string name_;

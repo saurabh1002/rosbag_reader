@@ -5,7 +5,7 @@
 #include <fstream>
 #include <string>
 
-#include "bag_utils.hpp"
+#include "parse.hpp"
 
 void parseHeaderMsg(std::ifstream &rosbag, int &data_len) {
     DLOG(INFO) << "header:";
