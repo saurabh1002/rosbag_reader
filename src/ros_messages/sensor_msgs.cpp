@@ -65,8 +65,8 @@ void insertPointField(const std::string &name,
 std::vector<std::shared_ptr<PointFieldMsg>> parsePointFieldMsg(
         std::ifstream &rosbag,
         int &data_len,
-        unsigned long size,
-        int32_t num_point_fields) {
+        const unsigned long size,
+        const int32_t num_point_fields) {
     int32_t len_name = 0;
     uint32_t offset = 0;
     uint8_t datatype = 0;
