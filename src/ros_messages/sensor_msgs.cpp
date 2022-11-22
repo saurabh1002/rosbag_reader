@@ -89,7 +89,7 @@ std::vector<std::shared_ptr<PointFieldMsg>> parsePointFieldMsg(
 
         insertPointField(name, offset, datatype, size, fields_ptr);
 
-        data_len -= (13 + static_cast<int>(len_name));
+        data_len -= (13 + int{len_name});
     }
 
     return fields_ptr;
@@ -112,13 +112,13 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
     uint32_t width = 0;
     rosbag.read(reinterpret_cast<char *>(&width), sizeof(width));
     DLOG(INFO) << "width: " << width;
-    data_len -= static_cast<int>(sizeof(height) + sizeof(width));
+    data_len -= int{sizeof(height) + sizeof(width)};
 
     DLOG(INFO) << "fields:";
     int32_t num_point_fields = 0;
     rosbag.read(reinterpret_cast<char *>(&num_point_fields),
                 sizeof(num_point_fields));
-    data_len -= static_cast<int>(sizeof(num_point_fields));
+    data_len -= int{sizeof(num_point_fields)};
 
     auto num_points = static_cast<unsigned long>(height) *
                       static_cast<unsigned long>(width);
@@ -127,7 +127,7 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
 
     bool is_bigendian = false;
     rosbag.read(reinterpret_cast<char *>(&is_bigendian), sizeof(is_bigendian));
-    DLOG(INFO) << "is_bigendian: " << static_cast<int>(is_bigendian);
+    DLOG(INFO) << "is_bigendian: " << is_bigendian;
     uint32_t point_step = 0;
     rosbag.read(reinterpret_cast<char *>(&point_step), sizeof(point_step));
     uint32_t row_step = 0;
@@ -135,8 +135,8 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
     DLOG(INFO) << "point_step: " << point_step;
     DLOG(INFO) << "row_step: " << row_step;
 
-    data_len -= (static_cast<int>(sizeof(row_step) + sizeof(point_step)) +
-                 static_cast<int>(sizeof(is_bigendian)));
+    data_len -= (int{sizeof(row_step) + sizeof(point_step)} +
+                 int{sizeof(is_bigendian)});
 
     int len_data_field = 0;
     rosbag.read(reinterpret_cast<char *>(&len_data_field),
@@ -158,7 +158,7 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
 
     bool is_dense = false;
     rosbag.read(reinterpret_cast<char *>(&is_dense), sizeof(is_dense));
-    DLOG(INFO) << "is_dense: " << static_cast<int>(is_dense);
+    DLOG(INFO) << "is_dense: " << is_dense;
 
     std::vector<std::string> field_names;
     std::vector<std::vector<double>> pointcloud2;

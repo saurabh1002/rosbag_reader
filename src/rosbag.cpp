@@ -45,8 +45,7 @@ void readRecord(std::ifstream &rosbag,
 
     int opval = 0;
     if (fields.find("op") != fields.end()) {
-        opval = static_cast<int>(
-                *reinterpret_cast<uint8_t *>(fields["op"].get()));
+        opval = int{*reinterpret_cast<uint8_t *>(fields["op"].get())};
         DLOG(INFO) << "opval = " << opval;
     }
 

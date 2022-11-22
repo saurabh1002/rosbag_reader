@@ -21,7 +21,7 @@ void parseHeaderMsg(std::ifstream &rosbag, int &data_len) {
     rosbag.read(reinterpret_cast<char *>(&nsecs), sizeof(nsecs));
     DLOG(INFO) << "\t\tsecs: ", secs;
     DLOG(INFO) << "\t\tnsecs: ", nsecs;
-    data_len -= static_cast<int>(sizeof(secs) + sizeof(nsecs));
+    data_len -= int{sizeof(secs) + sizeof(nsecs)};
 
     std::string frame_id;
     int32_t len_frame_id = 0;
@@ -29,6 +29,5 @@ void parseHeaderMsg(std::ifstream &rosbag, int &data_len) {
     readString(rosbag, frame_id, len_frame_id);
     DLOG(INFO) << "\tframe_id: " << frame_id;
 
-    data_len -=
-            static_cast<int>(sizeof(seq) + sizeof(len_frame_id) + len_frame_id);
+    data_len -= (int{sizeof(seq) + sizeof(len_frame_id)} + len_frame_id);
 }

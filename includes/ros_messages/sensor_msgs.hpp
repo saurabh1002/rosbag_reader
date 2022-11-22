@@ -27,7 +27,7 @@ public:
 
     void readDataFromStream(std::ifstream& rosbag) override {
         rosbag.read(reinterpret_cast<char*>(&data_), sizeof(data_));
-        data_vec_.emplace_back(static_cast<double>(data_));
+        data_vec_.emplace_back(double{data_});
     }
 
     const std::string& getName() const override { return name_; }
