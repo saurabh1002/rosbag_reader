@@ -9,5 +9,6 @@ if(SILENCE_WARNINGS)
   set(ExternalProject_CMAKE_CXX_FLAGS "-DCMAKE_CXX_FLAGS=-w")
 endif()
 
+include(${CMAKE_CURRENT_LIST_DIR}/glog/glog.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/indicators/indicators.cmake)
 include(${CMAKE_CURRENT_LIST_DIR}/yaml-cpp/yaml-cpp.cmake)

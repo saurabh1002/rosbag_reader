@@ -2,8 +2,6 @@
 cmake_minimum_required(VERSION 3.12.0)
 project(rosbag_reader DESCRIPTION "Read ROSv1 bag files using plain C++" LANGUAGES C CXX)
 
-find_package(glog REQUIRED)
-
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set (CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
