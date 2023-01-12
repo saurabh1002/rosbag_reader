@@ -1,7 +1,5 @@
 #include "parse.hpp"
 
-#include <glog/logging.h>
-
 #include <fstream>
 #include <memory>
 #include <string>
@@ -23,7 +21,6 @@ std::tuple<std::string, std::string> readStringField(std::ifstream &rosbag,
     std::string field_val;
     readString(rosbag, field_val,
                field_len - static_cast<int>(field_name.size()) - 1);
-    DLOG(INFO) << field_name << " = " << field_val;
     header_len -= (field_len + 4);
 
     return std::make_tuple(field_name, field_val);

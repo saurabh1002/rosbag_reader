@@ -1,14 +1,12 @@
 #include "sensor_msgs.hpp"
 
-#include <glog/logging.h>
-
 #include <memory>
 #include <string>
 #include <vector>
 
-#include "io.hpp"
-#include "parse.hpp"
 #include "std_msgs.hpp"
+#include "utils/io.hpp"  // TODO: Remove when we get rid of the PLY test application
+#include "utils/parse.hpp"
 
 void insertPointField(const std::string &name,
                       const uint32_t offset,
@@ -47,15 +45,11 @@ void insertPointField(const std::string &name,
             break;
 
         case 7:
-            LOG_IF(FATAL, sizeof(float) != 4)
-                    << "float datatype expected to be 4 bytes long";
             fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
                     new TypedPointFieldMsg<float>(name, offset, size)));
             break;
 
         case 8:
-            LOG_IF(FATAL, sizeof(double) != 8)
-                    << "double datatype expected to be 8 bytes long";
             fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
                     new TypedPointFieldMsg<double>(name, offset, size)));
             break;
@@ -82,10 +76,6 @@ std::vector<std::shared_ptr<PointFieldMsg>> parsePointFieldMsg(
         rosbag.read(reinterpret_cast<char *>(&offset), sizeof(offset));
         rosbag.read(reinterpret_cast<char *>(&datatype), sizeof(datatype));
         rosbag.read(reinterpret_cast<char *>(&count), sizeof(count));
-        DLOG(INFO) << "name: " << name.c_str();
-        DLOG(INFO) << "offset: " << offset;
-        DLOG(INFO) << "datatype: " << datatype;
-        DLOG(INFO) << "count: " << count;
 
         insertPointField(name, offset, datatype, size, fields_ptr);
 
@@ -108,13 +98,10 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
 
     uint32_t height = 0;
     rosbag.read(reinterpret_cast<char *>(&height), sizeof(height));
-    DLOG(INFO) << "height: " << height;
     uint32_t width = 0;
     rosbag.read(reinterpret_cast<char *>(&width), sizeof(width));
-    DLOG(INFO) << "width: " << width;
     data_len -= int{sizeof(height) + sizeof(width)};
 
-    DLOG(INFO) << "fields:";
     int32_t num_point_fields = 0;
     rosbag.read(reinterpret_cast<char *>(&num_point_fields),
                 sizeof(num_point_fields));
@@ -127,13 +114,10 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
 
     bool is_bigendian = false;
     rosbag.read(reinterpret_cast<char *>(&is_bigendian), sizeof(is_bigendian));
-    DLOG(INFO) << "is_bigendian: " << is_bigendian;
     uint32_t point_step = 0;
     rosbag.read(reinterpret_cast<char *>(&point_step), sizeof(point_step));
     uint32_t row_step = 0;
     rosbag.read(reinterpret_cast<char *>(&row_step), sizeof(row_step));
-    DLOG(INFO) << "point_step: " << point_step;
-    DLOG(INFO) << "row_step: " << row_step;
 
     data_len -= (int{sizeof(row_step) + sizeof(point_step)} +
                  int{sizeof(is_bigendian)});
@@ -142,7 +126,6 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
     rosbag.read(reinterpret_cast<char *>(&len_data_field),
                 sizeof(len_data_field));
     data_len -= 4;
-    DLOG(INFO) << "length of data[]: " << len_data_field;
 
     uint32_t offset_ptr = 0;
     for (int i = 0; i < height * width; i++) {
@@ -158,7 +141,6 @@ void parsePointCloud2Msg(std::ifstream &rosbag,
 
     bool is_dense = false;
     rosbag.read(reinterpret_cast<char *>(&is_dense), sizeof(is_dense));
-    DLOG(INFO) << "is_dense: " << is_dense;
 
     std::vector<std::string> field_names;
     std::vector<std::vector<double>> pointcloud2;

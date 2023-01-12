@@ -1,9 +1,10 @@
+#include "io.hpp"
+
 #include <filesystem>
 #include <fstream>
 #include <string>
 #include <vector>
 
-#include "io.hpp"
 #include "math.hpp"
 
 void savePointCloudAsPLY(const std::vector<std::vector<double>>& points,
