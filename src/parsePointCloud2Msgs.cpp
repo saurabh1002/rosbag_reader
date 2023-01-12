@@ -3,16 +3,13 @@
 #include <tuple>
 
 #include "rosbag.hpp"
-#include "yaml-cpp/yaml.h"
 
 int main(int argc, char *argv[]) {
-    YAML::Node config = YAML::LoadFile(argv[1]);
+    std::string rosbag_path(argv[1]);
+    std::string ply_save_path(argv[2]);
 
-    auto rosbag_path = config["rosbag_path"].as<std::string>();
     std::ifstream rosbag(rosbag_path,
                          std::ios_base::in | std::ios_base::binary);
-
-    auto pcl_save_path = config["pcl_save_path"].as<std::string>();
 
     if (!rosbag) {
         return 1;
@@ -40,7 +37,7 @@ int main(int argc, char *argv[]) {
         if (rosbag.eof()) {
             break;
         }
-        readRecord(rosbag, chunk_count, connections, pcl_save_path);
+        readRecord(rosbag, chunk_count, connections, ply_save_path);
     }
 
     return 0;
