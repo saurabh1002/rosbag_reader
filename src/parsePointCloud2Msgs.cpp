@@ -1,16 +1,11 @@
-#include <glog/logging.h>
-
 #include <fstream>
 #include <string>
 #include <tuple>
 
-#include "indicators/progress_bar.hpp"
 #include "rosbag.hpp"
 #include "yaml-cpp/yaml.h"
 
 int main(int argc, char *argv[]) {
-    google::InitGoogleLogging("rosbag_reader");
-
     YAML::Node config = YAML::LoadFile(argv[1]);
 
     auto rosbag_path = config["rosbag_path"].as<std::string>();

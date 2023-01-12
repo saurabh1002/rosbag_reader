@@ -1,7 +1,5 @@
 #include "rosbag.hpp"
 
-#include <glog/logging.h>
-
 #include <fstream>
 #include <map>
 #include <memory>
