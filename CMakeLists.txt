@@ -11,6 +11,4 @@ if(NOT CMAKE_BUILD_TYPE)
   set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# TODO: Move to target-oriented cmake
-include_directories(${CMAKE_SOURCE_DIR}/include)
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)

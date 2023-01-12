@@ -3,7 +3,7 @@
 #include <fstream>
 #include <string>
 
-#include "parse.hpp"
+#include "utils/parse.hpp"
 
 void parseHeaderMsg(std::ifstream &rosbag, int &data_len) {
     uint32_t seq = 0;

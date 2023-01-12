@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include "parse.hpp"
-#include "sensor_msgs.hpp"
+#include "ros_messages/sensor_msgs.hpp"
+#include "utils/parse.hpp"
 
 std::map<std::string, std::shared_ptr<char[]>> readRecordHeader(
         std::ifstream &rosbag, int &header_len) {

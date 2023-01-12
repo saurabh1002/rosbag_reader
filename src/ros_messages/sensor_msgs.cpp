@@ -4,9 +4,9 @@
 #include <string>
 #include <vector>
 
-#include "io.hpp"
-#include "parse.hpp"
 #include "std_msgs.hpp"
+#include "utils/io.hpp"  // TODO: Remove when we get rid of the PLY test application
+#include "utils/parse.hpp"
 
 void insertPointField(const std::string &name,
                       const uint32_t offset,
