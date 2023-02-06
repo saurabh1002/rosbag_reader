@@ -1,41 +1,59 @@
 #pragma once
 
+#include <fstream>
 #include <map>
 #include <memory>
 #include <string>
 #include <vector>
 
-std::map<std::string, std::shared_ptr<char[]>> readRecordHeader(
-        std::ifstream &rosbag, int &header_len);
+using Connection = std::map<int, std::tuple<std::string, std::string>>;
+using FieldValMap = std::map<std::string, std::shared_ptr<char[]>>;
 
-void readRecord(std::ifstream &rosbag,
-                int &chunk_count,
-                std::vector<std::tuple<std::string, std::string>> &connections,
-                const std::string &pcl_save_path);
+struct MesssageDataInfo {
+    long buffer_offset;
+    int data_len;
+    int conn_id;
+    long int time;
+} __attribute__((aligned(32)));
 
-std::tuple<long int, int, int> readBagHeaderRecord(
-        std::ifstream &rosbag,
-        std::map<std::string, std::shared_ptr<char[]>> &fields);
+class Rosbag {
+public:
+    Rosbag(const std::string &rosbag_path);
 
-void readChunkRecord(std::ifstream &rosbag,
-                     std::map<std::string, std::shared_ptr<char[]>> &fields,
-                     int &chunk_count);
+private:
+    void readString(std::string &str, int n_bytes);
+    std::tuple<std::string, std::string> readStringField(int &header_len);
 
-void readConnectionRecord(
-        std::ifstream &rosbag,
-        std::map<std::string, std::shared_ptr<char[]>> &fields,
-        std::vector<std::tuple<std::string, std::string>> &connections);
+public:
+    FieldValMap readRecordHeader();
+    void readBag();
+    void readRecord();
+    int readChunkRecord();
+    void readConnectionRecord();
+    void readMessageDataRecord();
+    void readIndexDataRecord();
+    void readChunkInfoRecord();
 
-void readMessageDataRecord(
-        std::ifstream &rosbag,
-        std::map<std::string, std::shared_ptr<char[]>> &fields,
-        const std::vector<std::tuple<std::string, std::string>> &connections,
-        const std::string &pcl_save_path);
+public:
+    inline std::vector<MesssageDataInfo> getMessageDataInfo() const {
+        return msgdata_info_;
+    }
+    inline Connection getConnections() const { return connections_; }
+    void info() const;
 
-void readIndexDataRecord(
-        std::ifstream &rosbag,
-        std::map<std::string, std::shared_ptr<char[]>> &fields);
+private:
+    std::string rosbag_path_;
+    std::ifstream rosbag_;
 
-void readChunkInfoRecord(
-        std::ifstream &rosbag,
-        std::map<std::string, std::shared_ptr<char[]>> &fields);
+    long int index_pos_;
+    int num_unique_conns_;
+    int num_chunk_records_;
+
+    std::map<std::string, std::shared_ptr<char[]>> fields_;
+
+    std::vector<std::string> chunk_compression_types_;
+    std::vector<int> uncompressed_chunk_sizes_;
+    Connection connections_;
+
+    std::vector<MesssageDataInfo> msgdata_info_;
+};

@@ -1,74 +1,117 @@
 #include "rosbag.hpp"
 
 #include <fstream>
+#include <iostream>
 #include <map>
 #include <memory>
 #include <string>
-#include <vector>
 
-#include "ros_messages/sensor_msgs.hpp"
-#include "utils/parse.hpp"
+using FieldValMap = std::map<std::string, std::shared_ptr<char[]>>;
 
-std::map<std::string, std::shared_ptr<char[]>> readRecordHeader(
-        std::ifstream &rosbag, int &header_len) {
+Rosbag::Rosbag(const std::string &rosbag_path)
+    : rosbag_path_(rosbag_path),
+      rosbag_(rosbag_path, std::ios_base::in | std::ios_base::binary) {
+    if (!rosbag_) {
+        exit(EXIT_FAILURE);
+    }
+
+    std::string version;
+    std::getline(rosbag_, version);
+    if (version.find("V2.0") == std::string::npos) {
+        exit(EXIT_FAILURE);
+    }
+
+    // Read Bag Header Record
+    fields_ = this->readRecordHeader();
+    index_pos_ = *reinterpret_cast<long int *>(fields_["index_pos"].get());
+    num_unique_conns_ = *reinterpret_cast<int *>(fields_["conn_count"].get());
+    num_chunk_records_ = *reinterpret_cast<int *>(fields_["chunk_count"].get());
+
+    chunk_compression_types_.reserve(num_chunk_records_);
+    uncompressed_chunk_sizes_.reserve(num_chunk_records_);
+
+    // Ignore Data
+    int data_len = 0;
+    rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
+    rosbag_.ignore(data_len);
+}
+
+void Rosbag::readString(std::string &str, const int n_bytes) {
+    std::unique_ptr<char[]> const buffer(new char[n_bytes + 1]);
+    buffer.get()[n_bytes] = '\0';
+    rosbag_.read(buffer.get(), n_bytes);
+    str = buffer.get();
+}
+
+std::tuple<std::string, std::string> Rosbag::readStringField(int &header_len) {
+    int field_len = 0;
+    rosbag_.read(reinterpret_cast<char *>(&field_len), 4);
+    std::string field_name;
+    std::getline(rosbag_, field_name, '=');
+    std::string field_val;
+    this->readString(field_val,
+                     field_len - static_cast<int>(field_name.size()) - 1);
+    header_len -= (field_len + 4);
+
+    return {field_name, field_val};
+}
+
+FieldValMap Rosbag::readRecordHeader() {
+    int header_len = 0;
+    rosbag_.read(reinterpret_cast<char *>(&header_len), 4);
+
     int field_len = 0;
     std::string field_name;
     std::map<std::string, std::shared_ptr<char[]>> fields;
 
     while (header_len != 0) {
-        rosbag.read(reinterpret_cast<char *>(&field_len), 4);
-        std::getline(rosbag, field_name, '=');
+        rosbag_.read(reinterpret_cast<char *>(&field_len), 4);
+        std::getline(rosbag_, field_name, '=');
         const int field_val_nbytes =
                 field_len - 1 - static_cast<int>(field_name.size());
 
         std::shared_ptr<char[]> buffer(new char[field_val_nbytes]);
-        rosbag.read(buffer.get(), field_val_nbytes);
+        rosbag_.read(buffer.get(), field_val_nbytes);
         fields.insert({{field_name, std::move(buffer)}});
         header_len -= (4 + field_len);
     }
-
     return fields;
 }
 
-void readRecord(std::ifstream &rosbag,
-                int &chunk_count,
-                std::vector<std::tuple<std::string, std::string>> &connections,
-                const std::string &pcl_save_path) {
+void Rosbag::readBag() {
+    while (!rosbag_.eof()) {
+        this->readRecord();
+    }
+}
+
+void Rosbag::readRecord() {
     // Read Header
-    int header_len = 0;
-    rosbag.read(reinterpret_cast<char *>(&header_len), 4);
-    auto fields = readRecordHeader(rosbag, header_len);
+    fields_ = this->readRecordHeader();
 
     int opval = 0;
-    if (fields.find("op") != fields.end()) {
-        opval = int{*reinterpret_cast<uint8_t *>(fields["op"].get())};
+    if (fields_.find("op") != fields_.end()) {
+        opval = int{*reinterpret_cast<uint8_t *>(fields_["op"].get())};
     }
 
-    // Read Header
-
     switch (opval) {
-        case 3:
-            "be read at the beginning of the main function";
-            break;
-
         case 5:
-            readChunkRecord(rosbag, fields, chunk_count);
+            this->readChunkRecord();
             break;
 
         case 7:
-            readConnectionRecord(rosbag, fields, connections);
+            this->readConnectionRecord();
             break;
 
         case 2:
-            readMessageDataRecord(rosbag, fields, connections, pcl_save_path);
+            this->readMessageDataRecord();
             break;
 
         case 4:
-            readIndexDataRecord(rosbag, fields);
+            this->readIndexDataRecord();
             break;
 
         case 6:
-            readChunkInfoRecord(rosbag, fields);
+            this->readChunkInfoRecord();
             break;
 
         default:
@@ -76,119 +119,97 @@ void readRecord(std::ifstream &rosbag,
     }
 }
 
-std::tuple<long int, int, int> readBagHeaderRecord(
-        std::ifstream &rosbag,
-        std::map<std::string, std::shared_ptr<char[]>> &fields) {
-    auto index_pos = *reinterpret_cast<long int *>(fields["index_pos"].get());
-    auto conn_count = *reinterpret_cast<int *>(fields["conn_count"].get());
-    auto chunk_count = *reinterpret_cast<int *>(fields["chunk_count"].get());
-
-    // Ignore Data
-    int data_len = 0;
-    rosbag.read(reinterpret_cast<char *>(&data_len), 4);
-
-    rosbag.ignore(data_len);
-    return std::make_tuple(index_pos, conn_count, chunk_count);
-}
-
-void readChunkRecord(std::ifstream &rosbag,
-                     std::map<std::string, std::shared_ptr<char[]>> &fields,
-                     int &chunk_count) {
-    chunk_count++;
-
-    auto compression = std::string(fields["compression"].get());
-    auto uncompressed_chunk_size =
-            *reinterpret_cast<int *>(fields["size"].get());
+int Rosbag::readChunkRecord() {
+    chunk_compression_types_.emplace_back(fields_["compression"].get());
+    uncompressed_chunk_sizes_.emplace_back(
+            *reinterpret_cast<int *>(fields_["size"].get()));
 
     // Data
     int data_len = 0;
-    rosbag.read(reinterpret_cast<char *>(&data_len), 4);
+    rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
+    return data_len;
 }
 
-void readConnectionRecord(
-        std::ifstream &rosbag,
-        std::map<std::string, std::shared_ptr<char[]>> &fields,
-        std::vector<std::tuple<std::string, std::string>> &connections) {
-    auto topic = std::string(fields["topic"].get());
-    auto conn = *reinterpret_cast<int *>(fields["conn"].get());
+void Rosbag::readConnectionRecord() {
+    auto topic = std::string(fields_["topic"].get());
+    auto conn_id = *reinterpret_cast<int *>(fields_["conn"].get());
 
     // Data - Connection Header
     int data_len = 0;
-    rosbag.read(reinterpret_cast<char *>(&data_len), 4);
+    rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
 
     std::map<std::string, std::string> data_fields{
             {"topic", ""},    {"type", ""},
             {"md5sum", ""},   {"message_definition", ""},
             {"callerid", ""}, {"latching", ""}};
 
-    std::string field_name;
-    std::string field_val;
     while (data_len != 0) {
-        std::tie(field_name, field_val) = readStringField(rosbag, data_len);
+        auto [field_name, field_val] = this->readStringField(data_len);
         data_fields[field_name] = field_val;
     }
-    connections.emplace_back(
-            std::move(std::make_tuple(data_fields["type"], topic)));
+    connections_[conn_id] = {data_fields["type"], topic};
 }
 
-void readMessageDataRecord(
-        std::ifstream &rosbag,
-        std::map<std::string, std::shared_ptr<char[]>> &fields,
-        const std::vector<std::tuple<std::string, std::string>> &connections,
-        const std::string &pcl_save_path) {
-    auto conn = *reinterpret_cast<int *>(fields["conn"].get());
-    auto time = *reinterpret_cast<long int *>(fields["time"].get());
+void Rosbag::readMessageDataRecord() {
+    auto conn_id = *reinterpret_cast<int *>(fields_["conn"].get());
+    auto time = *reinterpret_cast<long int *>(fields_["time"].get());
 
     // Data - Serialized Message Data
     int data_len = 0;
-    rosbag.read(reinterpret_cast<char *>(&data_len), 4);
+    rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
 
-    auto [msg_type, topic] = connections[conn];
-
-    if (msg_type == "sensor_msgs/PointCloud2") {
-        parsePointCloud2Msg(rosbag, data_len, topic, pcl_save_path);
-        return;
-    }
-    rosbag.ignore(data_len);
+    long const buffer_offset = rosbag_.tellg();
+    msgdata_info_.emplace_back(
+            MesssageDataInfo{buffer_offset, data_len, conn_id, time});
+    rosbag_.ignore(data_len);
 }
 
-void readIndexDataRecord(
-        std::ifstream &rosbag,
-        std::map<std::string, std::shared_ptr<char[]>> &fields) {
-    auto conn = *reinterpret_cast<int *>(fields["conn"].get());
-    auto count = *reinterpret_cast<int *>(fields["count"].get());
-    auto ver = *reinterpret_cast<int *>(fields["ver"].get());
+void Rosbag::readIndexDataRecord() {
+    auto conn = *reinterpret_cast<int *>(fields_["conn"].get());
+    auto count = *reinterpret_cast<int *>(fields_["count"].get());
+    auto ver = *reinterpret_cast<int *>(fields_["ver"].get());
 
     // Data
     int data_len = 0;
-    rosbag.read(reinterpret_cast<char *>(&data_len), 4);
+    rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
     for (int i = 0; i < count; i++) {
         long int time = 0;
-        rosbag.read(reinterpret_cast<char *>(&time), sizeof(time));
+        rosbag_.read(reinterpret_cast<char *>(&time), sizeof(time));
 
         int offset = 0;
-        rosbag.read(reinterpret_cast<char *>(&offset), sizeof(offset));
+        rosbag_.read(reinterpret_cast<char *>(&offset), sizeof(offset));
     }
 }
 
-void readChunkInfoRecord(
-        std::ifstream &rosbag,
-        std::map<std::string, std::shared_ptr<char[]>> &fields) {
-    auto ver = *reinterpret_cast<int *>(fields["ver"].get());
-    auto chunk_pos = *reinterpret_cast<long int *>(fields["chunk_pos"].get());
-    auto start_time = *reinterpret_cast<long int *>(fields["start_time"].get());
-    auto end_time = *reinterpret_cast<long int *>(fields["end_time"].get());
-    auto conn_count = *reinterpret_cast<int *>(fields["count"].get());
+void Rosbag::readChunkInfoRecord() {
+    auto ver = *reinterpret_cast<int *>(fields_["ver"].get());
+    auto chunk_pos = *reinterpret_cast<long int *>(fields_["chunk_pos"].get());
+    auto start_time =
+            *reinterpret_cast<long int *>(fields_["start_time"].get());
+    auto end_time = *reinterpret_cast<long int *>(fields_["end_time"].get());
+    auto conn_count = *reinterpret_cast<int *>(fields_["count"].get());
 
     // Data
     int data_len = 0;
-    rosbag.read(reinterpret_cast<char *>(&data_len), 4);
+    rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
 
     for (int i = 0; i < conn_count; i++) {
         int conn = 0;
-        rosbag.read(reinterpret_cast<char *>(&conn), sizeof(conn));
+        rosbag_.read(reinterpret_cast<char *>(&conn), sizeof(conn));
 
         int msg_count = 0;
-        rosbag.read(reinterpret_cast<char *>(&msg_count), sizeof(msg_count));
+        rosbag_.read(reinterpret_cast<char *>(&msg_count), sizeof(msg_count));
+    }
+}
+
+void Rosbag::info() const {
+    std::cout << "Number of Chunk Records: " << num_chunk_records_ << "\n";
+    std::cout << "Number of Unique Connections: " << num_unique_conns_ << "\n";
+
+    std::cout << "Ros Topics in the Bag File\n";
+    for (const auto &[key, value] : connections_) {
+        const auto [msg_type, topic_name] = value;
+        std::cout << "\tTopic Name: " << topic_name
+                  << "\tMessage Type: " << msg_type << "\n";
     }
 }

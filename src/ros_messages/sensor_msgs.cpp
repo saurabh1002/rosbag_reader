@@ -1,157 +1,140 @@
 #include "sensor_msgs.hpp"
 
+#include <fstream>
 #include <memory>
-#include <string>
 #include <vector>
 
 #include "std_msgs.hpp"
-#include "utils/io.hpp"  // TODO: Remove when we get rid of the PLY test application
-#include "utils/parse.hpp"
+#include "utils.hpp"
 
-void insertPointField(const std::string &name,
-                      const uint32_t offset,
-                      const uint8_t datatype,
-                      const unsigned long size,
-                      std::vector<std::shared_ptr<PointFieldMsg>> &fields_ptr) {
-    switch (datatype) {
-        case 1:
-            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
-                    new TypedPointFieldMsg<int8_t>(name, offset, size)));
-            break;
+using sensor_msgs::FieldData;
+using sensor_msgs::FieldData_TypeT;
+using sensor_msgs::PointCloud2;
+using sensor_msgs::PointField;
 
-        case 2:
-            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
-                    new TypedPointFieldMsg<uint8_t>(name, offset, size)));
-            break;
-
-        case 3:
-            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
-                    new TypedPointFieldMsg<int16_t>(name, offset, size)));
-            break;
-
-        case 4:
-            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
-                    new TypedPointFieldMsg<uint16_t>(name, offset, size)));
-            break;
-
-        case 5:
-            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
-                    new TypedPointFieldMsg<int32_t>(name, offset, size)));
-            break;
-
-        case 6:
-            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
-                    new TypedPointFieldMsg<uint32_t>(name, offset, size)));
-            break;
-
-        case 7:
-            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
-                    new TypedPointFieldMsg<float>(name, offset, size)));
-            break;
-
-        case 8:
-            fields_ptr.emplace_back(std::shared_ptr<PointFieldMsg>(
-                    new TypedPointFieldMsg<double>(name, offset, size)));
-            break;
-    }
+FieldData::FieldData(const PointField &field, unsigned long num_points)
+    : field_(field) {
+    data_vec_.reserve(num_points);
 }
 
-std::vector<std::shared_ptr<PointFieldMsg>> parsePointFieldMsg(
-        std::ifstream &rosbag,
-        int &data_len,
-        const unsigned long size,
-        const int32_t num_point_fields) {
+PointField sensor_msgs::parsePointField(std::ifstream &rosbag, int &data_len) {
+    PointField point_field;
+
     int32_t len_name = 0;
-    uint32_t offset = 0;
-    uint8_t datatype = 0;
-    uint32_t count = 0;
+    rosbag.read(reinterpret_cast<char *>(&len_name), 4);
+    utils::parser::readString(rosbag, point_field.name, len_name);
+    rosbag.read(reinterpret_cast<char *>(&point_field.offset), 4);
+    rosbag.read(reinterpret_cast<char *>(&point_field.datatype), 1);
+    rosbag.read(reinterpret_cast<char *>(&point_field.count), 4);
 
-    std::vector<std::shared_ptr<PointFieldMsg>> fields_ptr;
-    fields_ptr.reserve(num_point_fields);
+    data_len -= (13 + int{len_name});
 
-    for (int i = 0; i < num_point_fields; i++) {
-        std::string name;
-        rosbag.read(reinterpret_cast<char *>(&len_name), sizeof(len_name));
-        readString(rosbag, name, len_name);
-        rosbag.read(reinterpret_cast<char *>(&offset), sizeof(offset));
-        rosbag.read(reinterpret_cast<char *>(&datatype), sizeof(datatype));
-        rosbag.read(reinterpret_cast<char *>(&count), sizeof(count));
-
-        insertPointField(name, offset, datatype, size, fields_ptr);
-
-        data_len -= (13 + int{len_name});
-    }
-
-    return fields_ptr;
+    return std::move(point_field);
 }
 
-void parsePointCloud2Msg(std::ifstream &rosbag,
-                         int data_len,
-                         const std::string &topic,
-                         const std::string &pcl_save_path) {
-    static std::map<std::string, int32_t> count_per_topic;
-    if (count_per_topic.find(topic) == count_per_topic.end()) {
-        count_per_topic.insert({topic, 0});
+std::vector<std::shared_ptr<FieldData>> sensor_msgs::createFieldDataVec(
+        const std::vector<PointField> &fields, const unsigned long num_points) {
+    std::vector<std::shared_ptr<FieldData>> fields_data;
+    fields_data.reserve(fields.size());
+
+    for (const auto &field : fields) {
+        switch (field.datatype) {
+            case 1:
+                fields_data.emplace_back(std::shared_ptr<FieldData>(
+                        new FieldData_TypeT<int8_t>(field, num_points)));
+                break;
+
+            case 2:
+                fields_data.emplace_back(std::shared_ptr<FieldData>(
+                        new FieldData_TypeT<uint8_t>(field, num_points)));
+                break;
+
+            case 3:
+                fields_data.emplace_back(std::shared_ptr<FieldData>(
+                        new FieldData_TypeT<int16_t>(field, num_points)));
+                break;
+
+            case 4:
+                fields_data.emplace_back(std::shared_ptr<FieldData>(
+                        new FieldData_TypeT<uint16_t>(field, num_points)));
+                break;
+
+            case 5:
+                fields_data.emplace_back(std::shared_ptr<FieldData>(
+                        new FieldData_TypeT<int32_t>(field, num_points)));
+                break;
+
+            case 6:
+                fields_data.emplace_back(std::shared_ptr<FieldData>(
+                        new FieldData_TypeT<uint32_t>(field, num_points)));
+                break;
+
+            case 7:
+                fields_data.emplace_back(std::shared_ptr<FieldData>(
+                        new FieldData_TypeT<float>(field, num_points)));
+                break;
+
+            case 8:
+                fields_data.emplace_back(std::shared_ptr<FieldData>(
+                        new FieldData_TypeT<double>(field, num_points)));
+                break;
+
+            default:
+                break;
+        }
+    }
+    return fields_data;
+}
+
+PointCloud2 sensor_msgs::parsePointCloud2(std::ifstream &rosbag, int data_len) {
+    PointCloud2 pcl2;
+    pcl2.header = std_msgs::parseHeader(rosbag, data_len);
+
+    rosbag.read(reinterpret_cast<char *>(&pcl2.height), 4);
+    rosbag.read(reinterpret_cast<char *>(&pcl2.width), 4);
+    rosbag.read(reinterpret_cast<char *>(&pcl2.num_fields), 4);
+    data_len -= 12;
+
+    auto num_points = static_cast<unsigned long>(pcl2.height) *
+                      static_cast<unsigned long>(pcl2.width);
+
+    pcl2.fields.reserve(pcl2.num_fields);
+    for (int i = 0; i < pcl2.num_fields; i++) {
+        pcl2.fields.emplace_back(
+                sensor_msgs::parsePointField(rosbag, data_len));
     }
 
-    parseHeaderMsg(rosbag, data_len);
-
-    uint32_t height = 0;
-    rosbag.read(reinterpret_cast<char *>(&height), sizeof(height));
-    uint32_t width = 0;
-    rosbag.read(reinterpret_cast<char *>(&width), sizeof(width));
-    data_len -= int{sizeof(height) + sizeof(width)};
-
-    int32_t num_point_fields = 0;
-    rosbag.read(reinterpret_cast<char *>(&num_point_fields),
-                sizeof(num_point_fields));
-    data_len -= int{sizeof(num_point_fields)};
-
-    auto num_points = static_cast<unsigned long>(height) *
-                      static_cast<unsigned long>(width);
-    auto fields_ptr =
-            parsePointFieldMsg(rosbag, data_len, num_points, num_point_fields);
-
-    bool is_bigendian = false;
-    rosbag.read(reinterpret_cast<char *>(&is_bigendian), sizeof(is_bigendian));
-    uint32_t point_step = 0;
-    rosbag.read(reinterpret_cast<char *>(&point_step), sizeof(point_step));
-    uint32_t row_step = 0;
-    rosbag.read(reinterpret_cast<char *>(&row_step), sizeof(row_step));
-
-    data_len -= (int{sizeof(row_step) + sizeof(point_step)} +
-                 int{sizeof(is_bigendian)});
+    rosbag.read(reinterpret_cast<char *>(&pcl2.is_bigendian), sizeof(bool));
+    rosbag.read(reinterpret_cast<char *>(&pcl2.point_step), 4);
+    rosbag.read(reinterpret_cast<char *>(&pcl2.row_step), 4);
+    data_len -= (8 + int{sizeof(bool)});
 
     int len_data_field = 0;
-    rosbag.read(reinterpret_cast<char *>(&len_data_field),
-                sizeof(len_data_field));
+    rosbag.read(reinterpret_cast<char *>(&len_data_field), 4);
     data_len -= 4;
 
+    // Read per point Data from the PointCloud2 Message
+    auto fields_data = createFieldDataVec(pcl2.fields, num_points);
     uint32_t offset_ptr = 0;
-    for (int i = 0; i < height * width; i++) {
-        for (auto &field_ptr : fields_ptr) {
-            rosbag.ignore(field_ptr->getOffset() - offset_ptr);
-            field_ptr->readDataFromStream(rosbag);
-            offset_ptr += (field_ptr->sizeofData() + field_ptr->getOffset() -
-                           offset_ptr);
+    for (int i = 0; i < num_points; i++) {
+        for (auto &field_data : fields_data) {
+            rosbag.ignore(field_data->field_.offset - offset_ptr);
+            field_data->read(rosbag);
+            offset_ptr += (field_data->sizeofData() +
+                           field_data->field_.offset - offset_ptr);
         }
-        rosbag.ignore(point_step - offset_ptr);
+        rosbag.ignore(pcl2.point_step - offset_ptr);
         offset_ptr = 0;
     }
 
-    bool is_dense = false;
-    rosbag.read(reinterpret_cast<char *>(&is_dense), sizeof(is_dense));
+    rosbag.read(reinterpret_cast<char *>(&pcl2.is_dense), sizeof(bool));
+    data_len -= int{sizeof(bool)};
 
-    std::vector<std::string> field_names;
-    std::vector<std::vector<double>> pointcloud2;
-    field_names.reserve(num_point_fields);
-    pointcloud2.reserve(num_point_fields);
-    for (auto &field_ptr : fields_ptr) {
-        pointcloud2.emplace_back(field_ptr->getData());
-        field_names.emplace_back(field_ptr->getName());
+    pcl2.data.reserve(pcl2.num_fields);
+    for (auto &field_data : fields_data) {
+        pcl2.data.emplace_back(field_data->data_vec_);
     }
 
-    savePointCloudAsPLY(pointcloud2, field_names, pcl_save_path + topic,
-                        count_per_topic[topic]);
-    count_per_topic[topic] += 1;
+    pcl2.data = math::transpose(pcl2.data);
+    return std::move(pcl2);
 }

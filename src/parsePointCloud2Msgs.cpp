@@ -1,43 +1,35 @@
 #include <fstream>
 #include <string>
-#include <tuple>
 
 #include "rosbag.hpp"
+#include "sensor_msgs.hpp"
+#include "utils.hpp"
 
 int main(int argc, char *argv[]) {
-    std::string rosbag_path(argv[1]);
-    std::string ply_save_path(argv[2]);
+    const std::string rosbag_path(argv[1]);
+    const std::string ply_save_path(argv[2]);
 
-    std::ifstream rosbag(rosbag_path,
-                         std::ios_base::in | std::ios_base::binary);
+    Rosbag rosbag(rosbag_path);
+    rosbag.readBag();
 
-    if (!rosbag) {
-        return 1;
-    }
+    auto message_data_info = rosbag.getMessageDataInfo();
+    auto connections = rosbag.getConnections();
+    rosbag.info();
 
-    std::string version;
-    std::getline(rosbag, version);
-    if (version.find("V2.0") == std::string::npos) {
-        return 1;
-    }
+    std::ifstream bag(rosbag_path, std::ios_base::in | std::ios_base::binary);
+    int i = 0;
+    for (auto message_data : message_data_info) {
+        bag.ignore(message_data.buffer_offset);
+        auto [msg_type, topic] = connections[message_data.conn_id];
 
-    // Read Bag Header Record
-    int header_len = 0;
-    rosbag.read(reinterpret_cast<char *>(&header_len), 4);
-
-    int chunk_count = 0;
-    auto fields = readRecordHeader(rosbag, header_len);
-    auto [index_pos, conn_count, num_of_chunks] =
-            readBagHeaderRecord(rosbag, fields);
-
-    std::vector<std::tuple<std::string, std::string>> connections;
-    connections.reserve(conn_count);
-
-    while (true) {
-        if (rosbag.eof()) {
-            break;
+        if (msg_type == "sensor_msgs/PointCloud2") {
+            auto pcl =
+                    sensor_msgs::parsePointCloud2(bag, message_data.data_len);
+            utils::io::savePointCloudAsPLY(pcl, ply_save_path + topic, i);
+            i++;
         }
-        readRecord(rosbag, chunk_count, connections, ply_save_path);
+        bag.clear();
+        bag.seekg(0, std::ios::beg);
     }
 
     return 0;
