@@ -66,7 +66,7 @@ public:
     uint32_t sizeofData() const override { return sizeof(T); }
 };
 
-PointField parsePointField(std::ifstream& rosbag, int& data_len);
+PointField parsePointField(std::ifstream& rosbag);
 
 std::vector<std::shared_ptr<sensor_msgs::FieldData>> createFieldDataVec(
         const std::vector<sensor_msgs::PointField>& fields,
@@ -87,7 +87,5 @@ struct PointCloud2 {
     bool is_dense;
 };
 
-PointCloud2 parsePointCloud2(std::ifstream& rosbag, int data_len);
-std::vector<PointCloud2> parsePointCloud2All(std::ifstream& rosbag,
-                                             int data_len);
+PointCloud2 parsePointCloud2(std::ifstream& rosbag);
 }  // namespace sensor_msgs

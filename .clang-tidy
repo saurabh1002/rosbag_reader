@@ -24,5 +24,6 @@ Checks: '*,
 -readability-uppercase-literal-suffix,
 -cppcoreguidelines-pro-type-reinterpret-cast,
 -altera-unroll-loops,
+-altera-id-dependent-backward-branch,
 '
 HeaderFilterRegex: '.*'

@@ -15,6 +15,6 @@ struct Header {
     std::string frame_id;
 } __attribute__((aligned(64))) __attribute__((packed));
 
-Time parseTime(std::ifstream &rosbag, int &data_len);
-Header parseHeader(std::ifstream &rosbag, int &data_len);
+Time parseTime(std::ifstream &rosbag);
+Header parseHeader(std::ifstream &rosbag);
 }  // namespace std_msgs

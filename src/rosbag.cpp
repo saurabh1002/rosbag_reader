@@ -1,40 +1,14 @@
 #include "rosbag.hpp"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <map>
 #include <memory>
+#include <numeric>
 #include <string>
 
 using FieldValMap = std::map<std::string, std::shared_ptr<char[]>>;
-
-Rosbag::Rosbag(const std::string &rosbag_path)
-    : rosbag_path_(rosbag_path),
-      rosbag_(rosbag_path, std::ios_base::in | std::ios_base::binary) {
-    if (!rosbag_) {
-        exit(EXIT_FAILURE);
-    }
-
-    std::string version;
-    std::getline(rosbag_, version);
-    if (version.find("V2.0") == std::string::npos) {
-        exit(EXIT_FAILURE);
-    }
-
-    // Read Bag Header Record
-    fields_ = this->readRecordHeader();
-    index_pos_ = *reinterpret_cast<long int *>(fields_["index_pos"].get());
-    num_unique_conns_ = *reinterpret_cast<int *>(fields_["conn_count"].get());
-    num_chunk_records_ = *reinterpret_cast<int *>(fields_["chunk_count"].get());
-
-    chunk_compression_types_.reserve(num_chunk_records_);
-    uncompressed_chunk_sizes_.reserve(num_chunk_records_);
-
-    // Ignore Data
-    int data_len = 0;
-    rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
-    rosbag_.ignore(data_len);
-}
 
 void Rosbag::readString(std::string &str, const int n_bytes) {
     std::unique_ptr<char[]> const buffer(new char[n_bytes + 1]);
@@ -75,141 +49,186 @@ FieldValMap Rosbag::readRecordHeader() {
         fields.insert({{field_name, std::move(buffer)}});
         header_len -= (4 + field_len);
     }
-    return fields;
+    return std::move(fields);
 }
 
-void Rosbag::readBag() {
-    while (!rosbag_.eof()) {
-        this->readRecord();
+Rosbag::Rosbag(const std::string &rosbag_path)
+    : rosbag_path_(rosbag_path),
+      rosbag_(rosbag_path, std::ios_base::in | std::ios_base::binary) {
+    if (!rosbag_) {
+        std::cerr << "Invalid path to the bag file\n";
+        exit(EXIT_FAILURE);
+    }
+
+    std::getline(rosbag_, version_);
+    if (version_.find("V2.0") != std::string::npos) {
+        version_ = "2.0";
+    } else {
+        std::cerr << "Supports only Rosbag Version 2.0\n";
+        exit(EXIT_FAILURE);
+    }
+
+    this->readBagInfo();
+
+    for (auto &[conn_id, conn_info] : connections_) {
+        conn_info.messages_info.reserve(conn_info.num_msgs);
     }
 }
 
-void Rosbag::readRecord() {
-    // Read Header
+void Rosbag::readBagHeaderRecord() {
     fields_ = this->readRecordHeader();
+    index_pos_ = *reinterpret_cast<long int *>(fields_["index_pos"].get());
+    num_unique_conns_ = *reinterpret_cast<int *>(fields_["conn_count"].get());
+    num_chunk_records_ = *reinterpret_cast<int *>(fields_["chunk_count"].get());
 
-    int opval = 0;
-    if (fields_.find("op") != fields_.end()) {
-        opval = int{*reinterpret_cast<uint8_t *>(fields_["op"].get())};
-    }
+    chunk_info_records_.reserve(num_chunk_records_);
+    chunk_compression_types_.reserve(num_chunk_records_);
 
-    switch (opval) {
-        case 5:
-            this->readChunkRecord();
-            break;
-
-        case 7:
-            this->readConnectionRecord();
-            break;
-
-        case 2:
-            this->readMessageDataRecord();
-            break;
-
-        case 4:
-            this->readIndexDataRecord();
-            break;
-
-        case 6:
-            this->readChunkInfoRecord();
-            break;
-
-        default:
-            break;
-    }
-}
-
-int Rosbag::readChunkRecord() {
-    chunk_compression_types_.emplace_back(fields_["compression"].get());
-    uncompressed_chunk_sizes_.emplace_back(
-            *reinterpret_cast<int *>(fields_["size"].get()));
-
-    // Data
+    // Ignore Data
     int data_len = 0;
     rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
-    return data_len;
+    rosbag_.ignore(data_len);
+}
+
+void Rosbag::readBagInfo() {
+    this->readBagHeaderRecord();
+
+    rosbag_.seekg(index_pos_);
+    for (int i = 0; i < num_unique_conns_; i++) {
+        this->readConnectionRecord();
+    }
+    for (int i = 0; i < num_chunk_records_; i++) {
+        this->readChunkInfoRecord();
+    }
+}
+
+void Rosbag::readData() {
+    std::for_each(chunk_info_records_.cbegin(), chunk_info_records_.cend(),
+                  [&](const ChunkInfo chunk_info) {
+                      rosbag_.seekg(chunk_info.chunk_pos);
+                      this->readChunkRecord(chunk_info.num_msgs);
+                  });
+}
+
+void Rosbag::readChunkRecord(long int num_of_msgs) {
+    fields_ = this->readRecordHeader();
+    int opval = int{*reinterpret_cast<uint8_t *>(fields_["op"].get())};
+    if (opval == 5) {
+        chunk_compression_types_.emplace_back(fields_["compression"].get());
+        int data_len = 0;
+        rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
+        while (num_of_msgs != 0) {
+            fields_ = this->readRecordHeader();
+            opval = int{*reinterpret_cast<uint8_t *>(fields_["op"].get())};
+            if (opval == 2) {
+                this->readMessageDataRecord();
+                num_of_msgs--;
+            } else {
+                int data_len = 0;
+                rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
+                rosbag_.ignore(data_len);
+            }
+        }
+        return;
+    }
+    std::cerr << "Expected to Read Chunk Record\n";
 }
 
 void Rosbag::readConnectionRecord() {
-    auto topic = std::string(fields_["topic"].get());
-    auto conn_id = *reinterpret_cast<int *>(fields_["conn"].get());
+    fields_ = this->readRecordHeader();
+    int const opval = int{*reinterpret_cast<uint8_t *>(fields_["op"].get())};
+    if (opval == 7) {
+        ConnectionInfo info{};
+        info.topic_name = std::string(fields_["topic"].get());
+        auto conn_id = *reinterpret_cast<int *>(fields_["conn"].get());
 
-    // Data - Connection Header
-    int data_len = 0;
-    rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
+        // Data - Connection Header
+        int data_len = 0;
+        rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
 
-    std::map<std::string, std::string> data_fields{
-            {"topic", ""},    {"type", ""},
-            {"md5sum", ""},   {"message_definition", ""},
-            {"callerid", ""}, {"latching", ""}};
+        std::map<std::string, std::string> data_fields;
+        while (data_len != 0) {
+            auto [field_name, field_val] = this->readStringField(data_len);
+            data_fields[field_name] = field_val;
+        }
 
-    while (data_len != 0) {
-        auto [field_name, field_val] = this->readStringField(data_len);
-        data_fields[field_name] = field_val;
+        info.msg_type = data_fields["type"];
+        connections_[conn_id] = info;
+        return;
     }
-    connections_[conn_id] = {data_fields["type"], topic};
+    std::cerr << "Expected to Read Connection Record\n";
 }
 
 void Rosbag::readMessageDataRecord() {
     auto conn_id = *reinterpret_cast<int *>(fields_["conn"].get());
     auto time = *reinterpret_cast<long int *>(fields_["time"].get());
 
-    // Data - Serialized Message Data
     int data_len = 0;
     rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
-
-    long const buffer_offset = rosbag_.tellg();
-    msgdata_info_.emplace_back(
-            MesssageDataInfo{buffer_offset, data_len, conn_id, time});
+    connections_[conn_id].messages_info.emplace_back(
+            MesssageDataInfo{rosbag_.tellg(), conn_id, time});
     rosbag_.ignore(data_len);
 }
 
-void Rosbag::readIndexDataRecord() {
-    auto conn = *reinterpret_cast<int *>(fields_["conn"].get());
-    auto count = *reinterpret_cast<int *>(fields_["count"].get());
-    auto ver = *reinterpret_cast<int *>(fields_["ver"].get());
-
-    // Data
-    int data_len = 0;
-    rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
-    for (int i = 0; i < count; i++) {
-        long int time = 0;
-        rosbag_.read(reinterpret_cast<char *>(&time), sizeof(time));
-
-        int offset = 0;
-        rosbag_.read(reinterpret_cast<char *>(&offset), sizeof(offset));
-    }
-}
-
 void Rosbag::readChunkInfoRecord() {
-    auto ver = *reinterpret_cast<int *>(fields_["ver"].get());
-    auto chunk_pos = *reinterpret_cast<long int *>(fields_["chunk_pos"].get());
-    auto start_time =
-            *reinterpret_cast<long int *>(fields_["start_time"].get());
-    auto end_time = *reinterpret_cast<long int *>(fields_["end_time"].get());
-    auto conn_count = *reinterpret_cast<int *>(fields_["count"].get());
+    fields_ = this->readRecordHeader();
+    int const opval = int{*reinterpret_cast<uint8_t *>(fields_["op"].get())};
+    if (opval == 6) {
+        ChunkInfo info{};
+        info.chunk_pos =
+                *reinterpret_cast<long int *>(fields_["chunk_pos"].get());
+        info.start_time =
+                *reinterpret_cast<long int *>(fields_["start_time"].get());
+        info.end_time =
+                *reinterpret_cast<long int *>(fields_["end_time"].get());
+        info.conn_count = *reinterpret_cast<int *>(fields_["count"].get());
 
-    // Data
-    int data_len = 0;
-    rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
-
-    for (int i = 0; i < conn_count; i++) {
+        // Data
+        int data_len = 0;
+        rosbag_.read(reinterpret_cast<char *>(&data_len), 4);
         int conn = 0;
-        rosbag_.read(reinterpret_cast<char *>(&conn), sizeof(conn));
-
-        int msg_count = 0;
-        rosbag_.read(reinterpret_cast<char *>(&msg_count), sizeof(msg_count));
+        int count = 0;
+        for (int i = 0; i < info.conn_count; i++) {
+            rosbag_.read(reinterpret_cast<char *>(&conn), 4);
+            rosbag_.read(reinterpret_cast<char *>(&count), 4);
+            connections_[conn].num_msgs += count;
+            info.num_msgs += count;
+        }
+        chunk_info_records_.emplace_back(info);
+        return;
     }
+    std::cerr << "Expected to Read Chunk Info Record\n";
 }
 
-void Rosbag::info() const {
-    std::cout << "Number of Chunk Records: " << num_chunk_records_ << "\n";
-    std::cout << "Number of Unique Connections: " << num_unique_conns_ << "\n";
+void Rosbag::printInfo() const {
+    std::cout << "path:\t\t\t" << rosbag_path_ << "\n";
+    std::cout << "version:\t\t" << version_ << "\n";
 
-    std::cout << "Ros Topics in the Bag File\n";
-    for (const auto &[key, value] : connections_) {
-        const auto [msg_type, topic_name] = value;
-        std::cout << "\tTopic Name: " << topic_name
-                  << "\tMessage Type: " << msg_type << "\n";
+    auto start = std::min_element(chunk_info_records_.cbegin(),
+                                  chunk_info_records_.cend(),
+                                  [](const auto &rec1, const auto &rec2) {
+                                      return rec1.start_time < rec2.start_time;
+                                  });
+
+    auto end = std::max_element(chunk_info_records_.cbegin(),
+                                chunk_info_records_.cend(),
+                                [](const auto &rec1, const auto &rec2) {
+                                    return rec1.end_time < rec2.end_time;
+                                });
+
+    std::cout << "duration:\t\t" << end->end_time - start->start_time << "\n";
+    std::cout << "start:\t\t\t" << start->start_time << "\n";
+    std::cout << "end:\t\t\t" << end->end_time << "\n";
+
+    auto num_of_messages = std::accumulate(
+            chunk_info_records_.cbegin(), chunk_info_records_.cend(), 0,
+            [](long int sum, ChunkInfo info) { return sum + info.num_msgs; });
+    std::cout << "messages:\t\t" << num_of_messages << "\n";
+
+    std::cout << "topics:\n";
+    for (const auto &[id, info] : connections_) {
+        std::cout << "\t" + info.topic_name + "\n";
+        std::cout << "\t\t" << info.num_msgs << " msgs\n";
+        std::cout << "\t\tmsg type: " + info.msg_type << "\n";
     }
 }

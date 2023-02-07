@@ -6,54 +6,63 @@
 #include <string>
 #include <vector>
 
-using Connection = std::map<int, std::tuple<std::string, std::string>>;
-using FieldValMap = std::map<std::string, std::shared_ptr<char[]>>;
+struct ChunkInfo {
+    long int chunk_pos{};
+    long int start_time{};
+    long int end_time{};
+    long int num_msgs{};
+    int conn_count{};
+} __attribute__((aligned(64)));
 
 struct MesssageDataInfo {
-    long buffer_offset;
-    int data_len;
-    int conn_id;
-    long int time;
+    long buffer_offset{};
+    int conn_id{};
+    long int time{};
 } __attribute__((aligned(32)));
+
+struct ConnectionInfo {
+    std::string msg_type;
+    std::string topic_name;
+    int num_msgs{};
+    std::vector<MesssageDataInfo> messages_info;
+} __attribute__((aligned(128))) __attribute__((packed));
+
+using Connection = std::map<int, ConnectionInfo>;
+using FieldValMap = std::map<std::string, std::shared_ptr<char[]>>;
 
 class Rosbag {
 public:
     Rosbag(const std::string &rosbag_path);
 
-private:
+public:
     void readString(std::string &str, int n_bytes);
     std::tuple<std::string, std::string> readStringField(int &header_len);
-
-public:
     FieldValMap readRecordHeader();
-    void readBag();
-    void readRecord();
-    int readChunkRecord();
+    void readBagHeaderRecord();
+    void readChunkRecord(long int num_of_msgs);
     void readConnectionRecord();
     void readMessageDataRecord();
-    void readIndexDataRecord();
     void readChunkInfoRecord();
 
 public:
-    inline std::vector<MesssageDataInfo> getMessageDataInfo() const {
-        return msgdata_info_;
-    }
+    void readData();
+    void readBagInfo();
+    void printInfo() const;
     inline Connection getConnections() const { return connections_; }
-    void info() const;
 
 private:
     std::string rosbag_path_;
     std::ifstream rosbag_;
 
-    long int index_pos_;
-    int num_unique_conns_;
-    int num_chunk_records_;
+    std::string version_;
+
+    long int index_pos_{};
+    int num_unique_conns_{};
+    int num_chunk_records_{};
 
     std::map<std::string, std::shared_ptr<char[]>> fields_;
 
-    std::vector<std::string> chunk_compression_types_;
-    std::vector<int> uncompressed_chunk_sizes_;
     Connection connections_;
-
-    std::vector<MesssageDataInfo> msgdata_info_;
+    std::vector<std::string> chunk_compression_types_;
+    std::vector<ChunkInfo> chunk_info_records_;
 };

@@ -17,7 +17,7 @@ FieldData::FieldData(const PointField &field, unsigned long num_points)
     data_vec_.reserve(num_points);
 }
 
-PointField sensor_msgs::parsePointField(std::ifstream &rosbag, int &data_len) {
+PointField sensor_msgs::parsePointField(std::ifstream &rosbag) {
     PointField point_field;
 
     int32_t len_name = 0;
@@ -26,8 +26,6 @@ PointField sensor_msgs::parsePointField(std::ifstream &rosbag, int &data_len) {
     rosbag.read(reinterpret_cast<char *>(&point_field.offset), 4);
     rosbag.read(reinterpret_cast<char *>(&point_field.datatype), 1);
     rosbag.read(reinterpret_cast<char *>(&point_field.count), 4);
-
-    data_len -= (13 + int{len_name});
 
     return std::move(point_field);
 }
@@ -86,32 +84,28 @@ std::vector<std::shared_ptr<FieldData>> sensor_msgs::createFieldDataVec(
     return fields_data;
 }
 
-PointCloud2 sensor_msgs::parsePointCloud2(std::ifstream &rosbag, int data_len) {
+PointCloud2 sensor_msgs::parsePointCloud2(std::ifstream &rosbag) {
     PointCloud2 pcl2;
-    pcl2.header = std_msgs::parseHeader(rosbag, data_len);
+    pcl2.header = std_msgs::parseHeader(rosbag);
 
     rosbag.read(reinterpret_cast<char *>(&pcl2.height), 4);
     rosbag.read(reinterpret_cast<char *>(&pcl2.width), 4);
     rosbag.read(reinterpret_cast<char *>(&pcl2.num_fields), 4);
-    data_len -= 12;
 
     auto num_points = static_cast<unsigned long>(pcl2.height) *
                       static_cast<unsigned long>(pcl2.width);
 
     pcl2.fields.reserve(pcl2.num_fields);
     for (int i = 0; i < pcl2.num_fields; i++) {
-        pcl2.fields.emplace_back(
-                sensor_msgs::parsePointField(rosbag, data_len));
+        pcl2.fields.emplace_back(sensor_msgs::parsePointField(rosbag));
     }
 
     rosbag.read(reinterpret_cast<char *>(&pcl2.is_bigendian), sizeof(bool));
     rosbag.read(reinterpret_cast<char *>(&pcl2.point_step), 4);
     rosbag.read(reinterpret_cast<char *>(&pcl2.row_step), 4);
-    data_len -= (8 + int{sizeof(bool)});
 
     int len_data_field = 0;
     rosbag.read(reinterpret_cast<char *>(&len_data_field), 4);
-    data_len -= 4;
 
     // Read per point Data from the PointCloud2 Message
     auto fields_data = createFieldDataVec(pcl2.fields, num_points);
@@ -128,7 +122,6 @@ PointCloud2 sensor_msgs::parsePointCloud2(std::ifstream &rosbag, int data_len) {
     }
 
     rosbag.read(reinterpret_cast<char *>(&pcl2.is_dense), sizeof(bool));
-    data_len -= int{sizeof(bool)};
 
     pcl2.data.reserve(pcl2.num_fields);
     for (auto &field_data : fields_data) {
