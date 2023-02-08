@@ -51,10 +51,13 @@ public:
     void readBagInfo();
     void printInfo() const;
     inline Connection getConnections() const { return connections_; }
+    inline int getNumMsgsonTopic(const std::string &topic) {
+        return connections_[topic_to_conn_id_[topic]].num_msgs;
+    }
 
 public:
-    std::vector<sensor_msgs::PointCloud2> extractPointCloud2(
-            const std::string &topic_name);
+    sensor_msgs::PointCloud2 extractPointCloud2(const std::string &topic_name,
+                                                int msg_idx);
 
 private:
     std::string rosbag_path_;
@@ -69,6 +72,7 @@ private:
     std::map<std::string, std::shared_ptr<char[]>> fields_;
 
     Connection connections_;
+    std::map<std::string, int> topic_to_conn_id_;
     std::vector<std::string> chunk_compression_types_;
     std::vector<ChunkInfo> chunk_info_records_;
 };

@@ -156,6 +156,7 @@ void Rosbag::readConnectionRecord() {
         }
 
         info.msg_type = data_fields["type"];
+        topic_to_conn_id_[info.topic_name] = conn_id;
         connections_[conn_id] = info;
         return;
     }
@@ -236,21 +237,12 @@ void Rosbag::printInfo() const {
     }
 }
 
-std::vector<sensor_msgs::PointCloud2> Rosbag::extractPointCloud2(
-        const std::string &topic_name) {
-    std::vector<sensor_msgs::PointCloud2> pointclouds;
-    for (auto &[conn_id, conn_info] : connections_) {
-        if (conn_info.topic_name == topic_name) {
-            if (conn_info.msg_type == "sensor_msgs/PointCloud2") {
-                pointclouds.reserve(conn_info.num_msgs);
-                for (auto &msg_info : conn_info.messages_info) {
-                    rosbag_.seekg(msg_info.buffer_offset);
-                    pointclouds.emplace_back(
-                            sensor_msgs::parsePointCloud2(rosbag_));
-                }
-                break;
-            }
-        }
-    }
-    return std::move(pointclouds);
+sensor_msgs::PointCloud2 Rosbag::extractPointCloud2(
+        const std::string &topic_name, int msg_idx) {
+    auto conn_id = topic_to_conn_id_[topic_name];
+    auto conn_info = connections_[conn_id];
+    auto msg_info = conn_info.messages_info[msg_idx];
+    rosbag_.seekg(msg_info.buffer_offset);
+    auto pointcloud = sensor_msgs::parsePointCloud2(rosbag_);
+    return std::move(pointcloud);
 }

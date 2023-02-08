@@ -13,10 +13,11 @@ int main(int argc, char* argv[]) {
     rosbag.printInfo();
     rosbag.readData();
 
-    auto pointclouds = rosbag.extractPointCloud2(topic_name);
-    int idx = 0;
-    for (auto& pcl : pointclouds) {
-        utils::io::savePointCloudAsPLY(pcl, ply_save_path + topic_name, idx++);
+    auto num_of_messages = rosbag.getNumMsgsonTopic(topic_name);
+    for (int idx = 0; idx < num_of_messages; idx++) {
+        auto pcl = rosbag.extractPointCloud2(topic_name, idx);
+        utils::io::savePointCloudAsPLY(pcl, ply_save_path + topic_name, idx);
+        break;
     }
     return 0;
 }
