@@ -44,9 +44,8 @@ inline void savePointCloudAsPLY(const sensor_msgs::PointCloud2 &pcl,
     ply_out << "end_header\n";
 
     for (const auto &point : pcl.data) {
-        for (auto val : point) {
-            ply_out.write(reinterpret_cast<char *>(&val), sizeof(val));
-        }
+        ply_out.write(reinterpret_cast<const char *>(point.data()),
+                      sizeof(point[0]) * point.size());
     }
 }
 }  // namespace io

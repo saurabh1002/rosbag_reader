@@ -18,6 +18,5 @@ int main(int argc, char* argv[]) {
     for (auto& pcl : pointclouds) {
         utils::io::savePointCloudAsPLY(pcl, ply_save_path + topic_name, idx++);
     }
-
     return 0;
 }
