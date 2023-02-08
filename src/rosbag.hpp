@@ -6,6 +6,8 @@
 #include <string>
 #include <vector>
 
+#include "sensor_msgs.hpp"
+
 struct ChunkInfo {
     long int chunk_pos{};
     long int start_time{};
@@ -49,6 +51,10 @@ public:
     void readBagInfo();
     void printInfo() const;
     inline Connection getConnections() const { return connections_; }
+
+public:
+    std::vector<sensor_msgs::PointCloud2> extractPointCloud2(
+            const std::string &topic_name);
 
 private:
     std::string rosbag_path_;

@@ -1,7 +1,9 @@
 add_subdirectory(ros_messages)
 
 add_library(rosbag_reader STATIC rosbag.cpp)
-target_include_directories(rosbag_reader PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+target_include_directories(rosbag_reader PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
+                            PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/ros_messages>
+)
 target_link_libraries(rosbag_reader PUBLIC ros_msgs)
 
 add_executable(parsePointCloud2Msgs parsePointCloud2Msgs.cpp)

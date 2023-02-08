@@ -8,6 +8,9 @@
 #include <numeric>
 #include <string>
 
+#include "sensor_msgs.hpp"
+#include "utils.hpp"
+
 using FieldValMap = std::map<std::string, std::shared_ptr<char[]>>;
 
 void Rosbag::readString(std::string &str, const int n_bytes) {
@@ -231,4 +234,23 @@ void Rosbag::printInfo() const {
         std::cout << "\t\t" << info.num_msgs << " msgs\n";
         std::cout << "\t\tmsg type: " + info.msg_type << "\n";
     }
+}
+
+std::vector<sensor_msgs::PointCloud2> Rosbag::extractPointCloud2(
+        const std::string &topic_name) {
+    std::vector<sensor_msgs::PointCloud2> pointclouds;
+    for (auto &[conn_id, conn_info] : connections_) {
+        if (conn_info.topic_name == topic_name) {
+            if (conn_info.msg_type == "sensor_msgs/PointCloud2") {
+                pointclouds.reserve(conn_info.num_msgs);
+                for (auto &msg_info : conn_info.messages_info) {
+                    rosbag_.seekg(msg_info.buffer_offset);
+                    pointclouds.emplace_back(
+                            sensor_msgs::parsePointCloud2(rosbag_));
+                }
+                break;
+            }
+        }
+    }
+    return std::move(pointclouds);
 }
