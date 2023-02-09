@@ -1,6 +1,7 @@
 #pragma once
 
 #include <fstream>
+#include <string>
 
 namespace std_msgs {
 
@@ -15,6 +16,7 @@ struct Header {
     std::string frame_id;
 } __attribute__((aligned(64))) __attribute__((packed));
 
+std::string readString(std::ifstream &rosbag, int n_bytes);
 Time parseTime(std::ifstream &rosbag);
 Header parseHeader(std::ifstream &rosbag);
 }  // namespace std_msgs

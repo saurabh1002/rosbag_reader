@@ -7,27 +7,6 @@
 
 #include "std_msgs.hpp"
 
-namespace math {
-template <typename T>
-using Matrix = std::vector<std::vector<T>>;
-
-template <typename T>
-Matrix<T> transpose(const Matrix<T>& vec) {
-    if (vec.empty()) {
-        return vec;
-    }
-
-    Matrix<T> trans_vec(vec[0].size(), std::vector<T>(vec.size()));
-
-    for (int i = 0; i < vec.size(); i++) {
-        for (int j = 0; j < vec[i].size(); j++) {
-            trans_vec[j][i] = vec[i][j];
-        }
-    }
-    return trans_vec;
-}
-}  // namespace math
-
 namespace sensor_msgs {
 
 struct PointField {
@@ -39,38 +18,34 @@ struct PointField {
 
 class FieldData {
 public:
-    FieldData(const sensor_msgs::PointField& field, unsigned long num_points);
+    FieldData(const sensor_msgs::PointField& field);
     virtual ~FieldData() = default;
 
-    virtual void read(std::ifstream& rosbag) = 0;
+    virtual double read(std::ifstream& rosbag) = 0;
     virtual uint32_t sizeofData() const = 0;
 
 public:
     sensor_msgs::PointField field_;
-    std::vector<double> data_vec_;
 };
 
 template <class T>
 class FieldData_TypeT : public FieldData {
 public:
-    explicit FieldData_TypeT(const sensor_msgs::PointField& field,
-                             unsigned long num_points)
-        : FieldData(field, num_points) {}
+    explicit FieldData_TypeT(const sensor_msgs::PointField& field)
+        : FieldData(field) {}
 
-    void read(std::ifstream& rosbag) override {
+    double read(std::ifstream& rosbag) override {
         T data;
         rosbag.read(reinterpret_cast<char*>(&data), sizeof(data));
-        data_vec_.emplace_back(double{data});
+        return double{data};
     }
-
     uint32_t sizeofData() const override { return sizeof(T); }
 };
 
 PointField parsePointField(std::ifstream& rosbag);
 
-std::vector<std::shared_ptr<sensor_msgs::FieldData>> createFieldDataVec(
-        const std::vector<sensor_msgs::PointField>& fields,
-        unsigned long num_points);
+std::vector<std::shared_ptr<sensor_msgs::FieldData>> getFields(
+        const std::vector<sensor_msgs::PointField>& fields);
 
 struct PointCloud2 {
     std_msgs::Header header;
@@ -82,7 +57,7 @@ struct PointCloud2 {
     bool is_bigendian;
     uint32_t point_step;
     uint32_t row_step;
-    math::Matrix<double> data;
+    std::vector<std::vector<double>> data;
 
     bool is_dense;
 };

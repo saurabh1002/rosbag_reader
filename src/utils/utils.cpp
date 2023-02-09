@@ -1,30 +1,16 @@
 #pragma once
 
-#include <algorithm>
+#include "utils.h"
+
 #include <filesystem>
 #include <fstream>
-#include <memory>
 #include <string>
-#include <vector>
 
-#include "sensor_msgs.hpp"
+#include "ros_messages.h"
 
-namespace utils {
-namespace parser {
-inline void readString(std::ifstream &rosbag,
-                       std::string &str,
-                       const int n_bytes) {
-    std::unique_ptr<char[]> const buffer(new char[n_bytes + 1]);
-    buffer.get()[n_bytes] = '\0';
-    rosbag.read(buffer.get(), n_bytes);
-    str = buffer.get();
-}
-}  // namespace parser
-
-namespace io {
-inline void savePointCloudAsPLY(const sensor_msgs::PointCloud2 &pcl,
-                                const std::string &output_path,
-                                int idx) {
+void utils::io::savePointCloudAsPLY(const sensor_msgs::PointCloud2 &pcl,
+                                    const std::string &output_path,
+                                    int idx) {
     const std::filesystem::path out_path(output_path);
     if (!std::filesystem::is_directory(out_path)) {
         std::filesystem::create_directories(out_path);
@@ -48,5 +34,3 @@ inline void savePointCloudAsPLY(const sensor_msgs::PointCloud2 &pcl,
                       sizeof(point[0]) * point.size());
     }
 }
-}  // namespace io
-}  // namespace utils

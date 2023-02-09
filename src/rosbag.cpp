@@ -1,4 +1,4 @@
-#include "rosbag.hpp"
+#include "rosbag.h"
 
 #include <algorithm>
 #include <fstream>
@@ -8,8 +8,7 @@
 #include <numeric>
 #include <string>
 
-#include "sensor_msgs.hpp"
-#include "utils.hpp"
+#include "ros_messages.h"
 
 using FieldValMap = std::map<std::string, std::shared_ptr<char[]>>;
 

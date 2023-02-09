@@ -6,7 +6,7 @@
 #include <string>
 #include <vector>
 
-#include "sensor_msgs.hpp"
+#include "ros_messages.h"
 
 struct ChunkInfo {
     long int chunk_pos{};
