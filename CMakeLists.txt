@@ -10,6 +10,7 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 set(BUILD_TESTS ON)
 
 include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
 
 # Specify build type
 if(NOT CMAKE_BUILD_TYPE)
