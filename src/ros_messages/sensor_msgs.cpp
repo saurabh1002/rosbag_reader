@@ -1,10 +1,8 @@
-#include "sensor_msgs.hpp"
-
 #include <fstream>
 #include <memory>
 #include <vector>
 
-#include "std_msgs.hpp"
+#include "ros_messages.h"
 
 using sensor_msgs::FieldData;
 using sensor_msgs::FieldData_TypeT;

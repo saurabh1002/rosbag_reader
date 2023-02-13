@@ -1,8 +1,8 @@
-#include "std_msgs.hpp"
-
 #include <fstream>
 #include <memory>
 #include <string>
+
+#include "ros_messages.h"
 
 std::string std_msgs::readString(std::ifstream &rosbag, const int n_bytes) {
     std::unique_ptr<char[]> const buffer(new char[n_bytes + 1]);
