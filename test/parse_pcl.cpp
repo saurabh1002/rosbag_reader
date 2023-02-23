@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     auto num_of_messages = rosbag.getNumMsgsonTopic(topic_name);
     for (int idx = 0; idx < num_of_messages; idx++) {
         auto pcl = rosbag.extractPointCloud2(topic_name, idx);
-        utils::io::savePointCloudAsPLY(pcl, ply_save_path + topic_name, idx);
+        // utils::io::savePointCloudAsBinary(pcl, ply_save_path, idx);
     }
     return 0;
 }

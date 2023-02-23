@@ -29,10 +29,10 @@ struct ConnectionInfo {
     std::vector<MesssageDataInfo> messages_info;
 } __attribute__((aligned(128))) __attribute__((packed));
 
-using Connection = std::map<int, ConnectionInfo>;
-using FieldValMap = std::map<std::string, std::shared_ptr<char[]>>;
-
 class Rosbag {
+    using Connection = std::map<int, ConnectionInfo>;
+    using FieldValMap = std::map<std::string, std::shared_ptr<char[]>>;
+
 public:
     Rosbag(const std::string &rosbag_path);
 

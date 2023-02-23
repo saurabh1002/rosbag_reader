@@ -36,3 +36,23 @@ void utils::io::savePointCloudAsPLY(const sensor_msgs::PointCloud2 &pcl,
                       sizeof(point[0]) * point.size());
     }
 }
+
+void utils::io::savePointCloudAsBinary(const sensor_msgs::PointCloud2 &pcl,
+                                       const std::string &output_path,
+                                       int idx) {
+    const std::filesystem::path out_path(output_path);
+    if (!std::filesystem::is_directory(out_path)) {
+        std::filesystem::create_directories(out_path);
+    }
+
+    std::ofstream ply_out;
+    std::ostringstream filename;
+    filename << std::setw(5) << std::setfill('0') << idx << ".bin";
+    ply_out.open(out_path / filename.str(),
+                 std::ios_base::out | std::ios_base::binary);
+
+    for (const auto &point : pcl.data) {
+        ply_out.write(reinterpret_cast<const char *>(point.data()),
+                      sizeof(point[0]) * 3);
+    }
+}
