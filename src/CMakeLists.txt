@@ -1,5 +1,4 @@
 add_subdirectory(ros_messages)
-add_subdirectory(utils)
 
 add_library(rosbag_reader STATIC)
 target_sources(rosbag_reader PRIVATE rosbag.cpp)
