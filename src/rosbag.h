@@ -14,20 +14,20 @@ struct ChunkInfo {
     long int end_time{};
     long int num_msgs{};
     int conn_count{};
-} __attribute__((aligned(64)));
+};
 
 struct MesssageDataInfo {
     long buffer_offset{};
     int conn_id{};
     long int time{};
-} __attribute__((aligned(32)));
+};
 
 struct ConnectionInfo {
     std::string msg_type;
     std::string topic_name;
     int num_msgs{};
     std::vector<MesssageDataInfo> messages_info;
-} __attribute__((aligned(128))) __attribute__((packed));
+};
 
 class Rosbag {
     using Connection = std::map<int, ConnectionInfo>;
