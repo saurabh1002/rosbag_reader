@@ -1,4 +1,7 @@
 add_subdirectory(ros_messages)
+if(TRUE)
+add_subdirectory(pybind)
+endif()
 
 add_library(rosbag_reader STATIC)
 target_sources(rosbag_reader PRIVATE rosbag.cpp)
