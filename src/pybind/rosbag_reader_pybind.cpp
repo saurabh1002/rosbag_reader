@@ -7,7 +7,7 @@ int add(int i, int j) { return i + j; }
 
 namespace py = pybind11;
 
-PYBIND11_MODULE(_core, m) {
+PYBIND11_MODULE(rosbag_reader_pybind, m) {
     m.def("add", &add, R"pbdoc(
         Add two numbers
         Some other explanation about the add function.

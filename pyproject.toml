@@ -3,5 +3,5 @@ requires = ["scikit-build-core", "pybind11"]
 build-backend = "scikit_build_core.build"
 
 [project]
-name = "scikit_build_simplest"
+name = "rosbag_reader"
 version = "0.0.1"
