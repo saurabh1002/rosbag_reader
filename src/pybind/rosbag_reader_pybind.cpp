@@ -2,7 +2,7 @@
 
 #include <string>
 
-#include "rosbag_reader/ros_messages.h"
+#include "rosbag_reader/ros_messages/ros_messages.h"
 #include "rosbag_reader/rosbag.h"
 
 namespace py = pybind11;

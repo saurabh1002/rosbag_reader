@@ -1,6 +1,8 @@
 include(GNUInstallDirs)
 include(CMakePackageConfigHelpers)
 
+# TODO FIX THIS
+# set(PUBLIC_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/rosbag.h;${CMAKE_CURRENT_SOURCE_DIR}/ros_messages/ros_messages.h")
 install(
   TARGETS rosbag_reader
   EXPORT ${PROJECT_NAME}Targets
