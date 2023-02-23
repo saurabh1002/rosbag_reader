@@ -1,15 +1,13 @@
 #include <pybind11/pybind11.h>
 
-#define STRINGIFY(x) #x
-#define MACRO_STRINGIFY(x) STRINGIFY(x)
+#include <string>
 
-int add(int i, int j) { return i + j; }
+#include "rosbag_reader/ros_messages.h"
+#include "rosbag_reader/rosbag.h"
 
 namespace py = pybind11;
-
+using namespace py::literals;
 PYBIND11_MODULE(rosbag_reader_pybind, m) {
-    m.def("add", &add, R"pbdoc(
-        Add two numbers
-        Some other explanation about the add function.
-    )pbdoc");
+    py::class_<Rosbag> rosbag(m, "Rosbag", "HELP HERE");
+    rosbag.def(py::init<std::string>(), "rosbag_path"_a);
 }
