@@ -59,7 +59,6 @@ Rosbag::Rosbag(const std::string &rosbag_path)
       rosbag_(rosbag_path, std::ios_base::in | std::ios_base::binary) {
     if (!rosbag_) {
         std::cerr << "Invalid path to the bag file\n";
-        exit(EXIT_FAILURE);
     }
 
     std::getline(rosbag_, version_);
@@ -67,7 +66,6 @@ Rosbag::Rosbag(const std::string &rosbag_path)
         version_ = "2.0";
     } else {
         std::cerr << "Supports only Rosbag Version 2.0\n";
-        exit(EXIT_FAILURE);
     }
 
     this->readBagInfo();
