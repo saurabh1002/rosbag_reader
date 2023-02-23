@@ -4,6 +4,7 @@
 
 #include <filesystem>
 #include <fstream>
+#include <sstream>
 #include <string>
 
 #include "ros_messages.h"
@@ -17,8 +18,9 @@ void utils::io::savePointCloudAsPLY(const sensor_msgs::PointCloud2 &pcl,
     }
 
     std::ofstream ply_out;
-    const std::string filename = std::to_string(idx) + ".ply";
-    ply_out.open(out_path / filename,
+    std::ostringstream filename;
+    filename << std::setw(5) << std::setfill('0') << idx << ".ply";
+    ply_out.open(out_path / filename.str(),
                  std::ios_base::out | std::ios_base::binary);
 
     ply_out << "ply\n"
