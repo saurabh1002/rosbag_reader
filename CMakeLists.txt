@@ -5,11 +5,6 @@ project(rosbag_reader VERSION 1.0
                       LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-set(BUILD_TESTS ON)
-
-include(GNUInstallDirs)
-include(CMakePackageConfigHelpers)
 
 # Specify build type
 if(NOT CMAKE_BUILD_TYPE)
@@ -17,7 +12,3 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 add_subdirectory(${CMAKE_SOURCE_DIR}/src)
-
-if(BUILD_TESTS)
-  add_subdirectory(${CMAKE_SOURCE_DIR}/test)
-endif()
