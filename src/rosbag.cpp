@@ -8,7 +8,7 @@
 #include <numeric>
 #include <string>
 
-#include "ros_messages.h"
+#include "ros_messages/ros_messages.h"
 
 using FieldValMap = std::map<std::string, std::shared_ptr<char[]>>;
 
