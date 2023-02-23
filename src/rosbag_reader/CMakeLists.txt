@@ -14,4 +14,4 @@ target_include_directories(
   rosbag_reader PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}
   PUBLIC $<BUILD_INTERFACE:${INCLUDE_DIRS}> $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 target_link_libraries(rosbag_reader PUBLIC $<TARGET_OBJECTS:ros_msgs>)
-include(cmake/install.cmake)
+# include(cmake/install.cmake)
