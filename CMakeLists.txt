@@ -1,8 +1,6 @@
 # Specify minimum cmake version required
 cmake_minimum_required(VERSION 3.12.0)
-project(rosbag_reader VERSION 1.0
-                      DESCRIPTION "Read ROS1 bag files using plain C++" 
-                      LANGUAGES CXX)
+project(rosbag_reader VERSION 1.0 DESCRIPTION "Read ROS1 bag files using plain C++" LANGUAGES CXX)
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
