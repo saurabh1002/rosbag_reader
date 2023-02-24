@@ -236,12 +236,12 @@ void Rosbag::printInfo() const {
     }
 }
 
-sensor_msgs::PointCloud2 Rosbag::extractPointCloud2(
+std::vector<std::vector<double>> Rosbag::extractPointCloud2(
         const std::string &topic_name, int msg_idx) {
     auto conn_id = topic_to_conn_id_[topic_name];
     auto conn_info = connections_[conn_id];
     auto msg_info = conn_info.messages_info[msg_idx];
     rosbag_.seekg(msg_info.buffer_offset);
     auto pointcloud = sensor_msgs::parsePointCloud2(rosbag_);
-    return std::move(pointcloud);
+    return std::move(pointcloud.data);
 }

@@ -36,7 +36,7 @@ class Rosbag {
 public:
     Rosbag(const std::string &rosbag_path);
 
-public:
+private:
     void readString(std::string &str, int n_bytes);
     std::tuple<std::string, std::string> readStringField(int &header_len);
     FieldValMap readRecordHeader();
@@ -56,8 +56,8 @@ public:
     }
 
 public:
-    sensor_msgs::PointCloud2 extractPointCloud2(const std::string &topic_name,
-                                                int msg_idx);
+    std::vector<std::vector<double>> extractPointCloud2(
+            const std::string &topic_name, int msg_idx);
 
 private:
     std::string rosbag_path_;
