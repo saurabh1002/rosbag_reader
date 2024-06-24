@@ -77,4 +77,20 @@ struct PointCloud2 {
 };
 
 PointCloud2 parsePointCloud2(std::ifstream& rosbag);
+
+struct LaserScan {
+    std_msgs::Header header;
+    float angle_min;
+    float angle_max;
+    float angle_increment;
+    float time_increment;
+    float scan_time;
+    float range_min;
+    float range_max;
+    std::vector<float> ranges;
+    std::vector<float> intensities;
+};
+
+LaserScan parseLaserScan(std::ifstream& rosbag);
+
 }  // namespace sensor_msgs

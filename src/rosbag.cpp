@@ -229,11 +229,12 @@ void Rosbag::printInfo() const {
     std::cout << "messages:\t\t" << num_of_messages << "\n";
 
     std::cout << "topics:\n";
-    for (const auto &[id, info] : connections_) {
-        std::cout << "\t" + info.topic_name + "\n";
-        std::cout << "\t\t" << info.num_msgs << " msgs\n";
-        std::cout << "\t\tmsg type: " + info.msg_type << "\n";
-    }
+    std::for_each(connections_.cbegin(), connections_.cend(), [
+    ](const auto connection){
+        std::cout << "\t" + connection.second.topic_name + "\n";
+        std::cout << "\t\t" << connection.second.num_msgs << " msgs\n";
+        std::cout << "\t\tmsg type: " + connection.second.msg_type << "\n";
+    });
 }
 
 sensor_msgs::PointCloud2 Rosbag::extractPointCloud2(
@@ -244,4 +245,14 @@ sensor_msgs::PointCloud2 Rosbag::extractPointCloud2(
     rosbag_.seekg(msg_info.buffer_offset);
     auto pointcloud = sensor_msgs::parsePointCloud2(rosbag_);
     return std::move(pointcloud);
+}
+
+sensor_msgs::LaserScan Rosbag::extractLaserScan(const std::string &topic_name,
+                                                int msg_idx) {
+    auto conn_id = topic_to_conn_id_[topic_name];
+    auto conn_info = connections_[conn_id];
+    auto msg_info = conn_info.messages_info[msg_idx];
+    rosbag_.seekg(msg_info.buffer_offset);
+    auto scan = sensor_msgs::parseLaserScan(rosbag_);
+    return std::move(scan);
 }

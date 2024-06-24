@@ -58,6 +58,8 @@ public:
 public:
     sensor_msgs::PointCloud2 extractPointCloud2(const std::string &topic_name,
                                                 int msg_idx);
+    sensor_msgs::LaserScan extractLaserScan(const std::string &topic_name,
+                                                int msg_idx);
 
 private:
     std::string rosbag_path_;
