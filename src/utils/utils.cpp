@@ -116,7 +116,7 @@ void utils::io::saveLaserScanAsBinary(const sensor_msgs::LaserScan &scan,
 
     std::ofstream bin_out;
     std::ostringstream filename;
-    filename << std::setw(5) << std::setfill('0') << idx << ".ply";
+    filename << std::setw(5) << std::setfill('0') << idx << ".bin";
     bin_out.open(out_path / filename.str(),
                  std::ios_base::out | std::ios_base::binary);
 
@@ -125,8 +125,8 @@ void utils::io::saveLaserScanAsBinary(const sensor_msgs::LaserScan &scan,
     std::for_each(
             scan.ranges.cbegin(), scan.ranges.cend(), [&](const auto &range) {
                 if ((range > scan.range_min) && (range < scan.range_max)) {
-                    double x = range * std::cos(angle);
-                    double y = range * std::sin(angle);
+		    float x = range * std::cos(angle);
+                    float y = range * std::sin(angle);
                     bin_out.write(reinterpret_cast<const char *>(&x),
                                   sizeof(x));
                     bin_out.write(reinterpret_cast<const char *>(&y),
@@ -138,3 +138,4 @@ void utils::io::saveLaserScanAsBinary(const sensor_msgs::LaserScan &scan,
                 scan_time += scan.time_increment;
             });
 }
+

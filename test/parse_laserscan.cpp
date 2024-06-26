@@ -15,7 +15,7 @@ int main(int argc, char* argv[]) {
     auto num_of_messages = rosbag.getNumMsgsonTopic(topic_name);
     for (int idx = 0; idx < num_of_messages; idx++) {
         auto scan = rosbag.extractLaserScan(topic_name, idx);
-        utils::io::saveLaserScanAsPLY(scan, ply_save_path, idx);
+        utils::io::saveLaserScanAsBinary(scan, ply_save_path, idx);
     }
     return 0;
 }
