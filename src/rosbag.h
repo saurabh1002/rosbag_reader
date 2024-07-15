@@ -27,7 +27,7 @@ struct ConnectionInfo {
     std::string topic_name;
     int num_msgs{};
     std::vector<MesssageDataInfo> messages_info;
-} __attribute__((aligned(128))) __attribute__((packed));
+};
 
 class Rosbag {
     using Connection = std::map<int, ConnectionInfo>;

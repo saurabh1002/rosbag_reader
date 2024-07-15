@@ -1,5 +1,3 @@
-#pragma once
-
 #include "utils.h"
 
 #include <algorithm>
@@ -24,7 +22,8 @@ void utils::io::savePointCloud2AsPLY(const sensor_msgs::PointCloud2 &pcl,
 
     std::ofstream ply_out;
     std::ostringstream filename;
-    filename << std::setw(5) << std::setfill('0') << idx << ".ply";
+    filename << std::to_string(pcl.header.stamp.secs) << "."
+             << std::to_string(pcl.header.stamp.nsecs) << ".ply";
     ply_out.open(out_path / filename.str(),
                  std::ios_base::out | std::ios_base::binary);
 
@@ -52,7 +51,8 @@ void utils::io::savePointCloud2AsBinary(const sensor_msgs::PointCloud2 &pcl,
 
     std::ofstream bin_out;
     std::ostringstream filename;
-    filename << std::setw(5) << std::setfill('0') << idx << ".bin";
+    filename << std::to_string(pcl.header.stamp.secs) << "."
+             << std::to_string(pcl.header.stamp.nsecs) << ".bin";
     bin_out.open(out_path / filename.str(),
                  std::ios_base::out | std::ios_base::binary);
 
@@ -72,7 +72,8 @@ void utils::io::saveLaserScanAsPLY(const sensor_msgs::LaserScan &scan,
 
     std::ofstream ply_out;
     std::ostringstream filename;
-    filename << std::setw(5) << std::setfill('0') << idx << ".ply";
+    filename << std::to_string(scan.header.stamp.secs) << "."
+             << std::to_string(scan.header.stamp.nsecs) << ".ply";
     ply_out.open(out_path / filename.str(),
                  std::ios_base::out | std::ios_base::binary);
 
@@ -84,7 +85,8 @@ void utils::io::saveLaserScanAsPLY(const sensor_msgs::LaserScan &scan,
                 if ((range > scan.range_min) && (range < scan.range_max)) {
                     float x = range * std::cos(angle);
                     float y = range * std::sin(angle);
-                    scan_data.emplace_back(std::array<float, 3>{x, y, scan_time});
+                    scan_data.emplace_back(
+                            std::array<float, 3>{x, y, scan_time});
                 }
                 scan_time += scan.time_increment;
                 angle += scan.angle_increment;
@@ -116,7 +118,8 @@ void utils::io::saveLaserScanAsBinary(const sensor_msgs::LaserScan &scan,
 
     std::ofstream bin_out;
     std::ostringstream filename;
-    filename << std::setw(5) << std::setfill('0') << idx << ".bin";
+    filename << std::to_string(scan.header.stamp.secs) << "."
+             << std::to_string(scan.header.stamp.nsecs) << ".bin";
     bin_out.open(out_path / filename.str(),
                  std::ios_base::out | std::ios_base::binary);
 
@@ -125,7 +128,7 @@ void utils::io::saveLaserScanAsBinary(const sensor_msgs::LaserScan &scan,
     std::for_each(
             scan.ranges.cbegin(), scan.ranges.cend(), [&](const auto &range) {
                 if ((range > scan.range_min) && (range < scan.range_max)) {
-		    float x = range * std::cos(angle);
+                    float x = range * std::cos(angle);
                     float y = range * std::sin(angle);
                     bin_out.write(reinterpret_cast<const char *>(&x),
                                   sizeof(x));
@@ -138,4 +141,3 @@ void utils::io::saveLaserScanAsBinary(const sensor_msgs::LaserScan &scan,
                 scan_time += scan.time_increment;
             });
 }
-

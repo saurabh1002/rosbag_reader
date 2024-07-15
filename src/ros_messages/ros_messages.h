@@ -15,7 +15,7 @@ struct Header {
     uint32_t seq;
     Time stamp;
     std::string frame_id;
-} __attribute__((aligned(64))) __attribute__((packed));
+};
 
 std::string readString(std::ifstream& rosbag, int n_bytes);
 Time parseTime(std::ifstream& rosbag);
@@ -28,7 +28,7 @@ struct PointField {
     uint32_t offset{};
     uint8_t datatype{};
     uint32_t count{};
-} __attribute__((aligned(64))) __attribute__((packed));
+};
 
 class FieldData {
 public:
