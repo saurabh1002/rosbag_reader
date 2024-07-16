@@ -39,9 +39,8 @@ def rosbag_reader(
     from rosbag_reader.rosbag_reader import RosbagReader
 
     rosbag_reader = RosbagReader(rosbag_path.as_posix())
-    rosbag_reader.readData()
     rosbag_reader.printInfo()
-    rosbag_reader.savePointCloud2AsPLY(topic, output_path.as_posix())
+    rosbag_reader.saveDataOnTopic(topic, output_path.as_posix())
 
 
 def run():

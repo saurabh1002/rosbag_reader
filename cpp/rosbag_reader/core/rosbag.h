@@ -25,6 +25,7 @@
 #include <map>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include "messages/messages.h"
@@ -52,10 +53,15 @@ struct ConnectionInfo {
 
 class Rosbag {
     using Connection = std::map<int, ConnectionInfo>;
-    using FieldValMap = std::map<std::string, std::shared_ptr<char[]>>;
+    using FieldValMap =
+            std::map<std::string, std::pair<std::shared_ptr<char[]>, int>>;
 
 public:
     Rosbag(const std::string &rosbag_path);
+    void printInfo() const;
+    void printAvailableTopics() const;
+    void saveDataOnTopic(const std::string &topic_name,
+                         const std::string &output_path);
 
 private:
     void readString(std::string &str, int n_bytes);
@@ -67,19 +73,12 @@ private:
     void readMessageDataRecord();
     void readChunkInfoRecord();
 
-    void readBagInfo();
-    inline Connection getConnections() const { return connections_; }
-
-public:
-    inline int getNumMsgsonTopic(const std::string &topic) const {
-        return connections_.at(topic_to_conn_id_.at(topic)).num_msgs;
-    }
     void readData();
-    void printInfo() const;
-    void printAvailableTopics() const;
-    void savePointCloud2AsPLY(const std::string &topic_name,
-                              const std::string &output_path);
-    void saveLaserScanAsPLY(const std::string &topic_name,
+    void readBagInfo();
+    void savePointCloud2AsPLY(
+            const std::vector<MesssageDataInfo> &messages_info,
+            const std::string &output_path);
+    void saveLaserScanAsPLY(const std::vector<MesssageDataInfo> &messages_info,
                             const std::string &output_path);
 
 private:
@@ -92,7 +91,7 @@ private:
     int num_unique_conns_{};
     int num_chunk_records_{};
 
-    std::map<std::string, std::shared_ptr<char[]>> fields_;
+    FieldValMap fields_;
 
     Connection connections_;
     std::map<std::string, int> topic_to_conn_id_;

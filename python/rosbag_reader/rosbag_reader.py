@@ -38,10 +38,6 @@ class RosbagReader:
         self._rosbag_reader._print_available_topics()
         return None
 
-    def savePointCloud2AsPLY(self, topic_name: str, output_path: str):
-        self._rosbag_reader._save_pointcloud2_as_ply(topic_name, output_path)
-        return None
-
-    def saveLaserScanAsPLY(self, topic_name: str, output_path: str):
-        self._rosbag_reader._save_laserscan_as_ply(topic_name, output_path)
+    def saveDataOnTopic(self, topic_name: str, output_path: str):
+        self._rosbag_reader._save_data_on_topic(topic_name, output_path)
         return None

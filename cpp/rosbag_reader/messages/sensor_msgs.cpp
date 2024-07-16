@@ -166,13 +166,13 @@ void PointCloud2::saveAsPLY(const std::string &output_path) {
     ply_out.open(out_path / filename.str(),
                  std::ios_base::out | std::ios_base::binary);
 
-    ply_out << "ply\n"
-            << "format binary_little_endian 1.0\n";
-    ply_out << "element vertex " << data.size() << "\n";
+    ply_out << "ply" << std::endl
+            << "format binary_little_endian 1.0" << std::endl;
+    ply_out << "element vertex " << data.size() << std::endl;
     std::for_each(fields.cbegin(), fields.cend(), [&](const auto &field) {
-        ply_out << "property double " << field.name << "\n";
+        ply_out << "property double " << field.name << std::endl;
     });
-    ply_out << "end_header\n";
+    ply_out << "end_header" << std::endl;
 
     std::for_each(data.cbegin(), data.cend(), [&](const auto &point) {
         ply_out.write(reinterpret_cast<const char *>(point.data()),
@@ -236,15 +236,15 @@ void LaserScan::saveAsPLY(const std::string &output_path) {
         angle += angle_increment;
     });
 
-    ply_out << "ply\n"
-            << "format binary_little_endian 1.0\n";
-    ply_out << "element vertex " << scan_data.size() << "\n";
+    ply_out << "ply" << std::endl
+            << "format binary_little_endian 1.0" << std::endl;
+    ply_out << "element vertex " << scan_data.size() << std::endl;
 
-    ply_out << "property float x\n";
-    ply_out << "property float y\n";
-    ply_out << "property float time\n";
+    ply_out << "property float x" << std::endl;
+    ply_out << "property float y" << std::endl;
+    ply_out << "property float time" << std::endl;
 
-    ply_out << "end_header\n";
+    ply_out << "end_header" << std::endl;
 
     std::for_each(scan_data.cbegin(), scan_data.cend(), [&](const auto &point) {
         ply_out.write(reinterpret_cast<const char *>(point.data()),

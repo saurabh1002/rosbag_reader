@@ -33,11 +33,8 @@ using namespace py::literals;
 PYBIND11_MODULE(rosbag_reader_pybind, m) {
     py::class_<Rosbag> rosbag(m, "_Rosbag");
     rosbag.def(py::init<std::string>(), "path_to_bag"_a)
-            .def("_read_data", &Rosbag::readData)
             .def("_print_info", &Rosbag::printInfo)
             .def("_print_available_topics", &Rosbag::printAvailableTopics)
-            .def("_save_pointcloud2_as_ply", &Rosbag::savePointCloud2AsPLY,
-                 "topic_name"_a, "output_path"_a)
-            .def("_save_laserscan_as_ply", &Rosbag::saveLaserScanAsPLY,
+            .def("_save_data_on_topic", &Rosbag::saveDataOnTopic,
                  "topic_name"_a, "output_path"_a);
 }
