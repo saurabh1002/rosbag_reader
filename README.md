@@ -18,3 +18,7 @@ git clone https://github.com/saurabh1002/rosbag_reader.git
 cd rosbag_reader
 make
 ```
+
+#### Usage
+![image](https://github.com/user-attachments/assets/c07f94f7-edcf-4736-a0d5-ae7dbce7df0c)
+
