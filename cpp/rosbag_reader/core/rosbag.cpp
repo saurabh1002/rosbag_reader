@@ -289,9 +289,11 @@ void Rosbag::saveDataOnTopic(const std::string &topic_name,
         auto conn_info = connections_.at(conn_id);
         if (conn_info.msg_type == "sensor_msgs/PointCloud2") {
             Rosbag::readData();
+            conn_info = connections_.at(conn_id);
             Rosbag::savePointCloud2AsPLY(conn_info.messages_info, output_path);
         } else if (conn_info.msg_type == "sensor_msgs/LaserScan") {
             Rosbag::readData();
+            conn_info = connections_.at(conn_id);
             Rosbag::saveLaserScanAsPLY(conn_info.messages_info, output_path);
         } else {
             std::cerr << "Message Type of topic " << topic_name

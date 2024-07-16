@@ -19,5 +19,5 @@
 add_library(messages STATIC)
 target_sources(messages PRIVATE std_msgs.cpp sensor_msgs.cpp)
 target_compile_features(messages PUBLIC cxx_std_17)
-target_include_directories(messages PRIVATE ${PROJECT_SOURCE_DIR}/
+target_include_directories(messages PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/
                            PUBLIC $<BUILD_INTERFACE:${PROJECT_SOURCE_DIR}>)
