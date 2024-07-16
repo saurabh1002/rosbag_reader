@@ -1,26 +1,33 @@
+// MIT License
+
+// Copyright (c) 2024 Saurabh Gupta
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 #pragma once
 
+#include <cstdint>
 #include <fstream>
 #include <memory>
 #include <string>
 #include <vector>
 
-namespace std_msgs {
-struct Time {
-    int32_t secs;
-    int32_t nsecs;
-} __attribute__((aligned(8)));
-
-struct Header {
-    uint32_t seq;
-    Time stamp;
-    std::string frame_id;
-};
-
-std::string readString(std::ifstream& rosbag, int n_bytes);
-Time parseTime(std::ifstream& rosbag);
-Header parseHeader(std::ifstream& rosbag);
-}  // namespace std_msgs
+#include "std_msgs.hpp"
 
 namespace sensor_msgs {
 struct PointField {
@@ -28,6 +35,8 @@ struct PointField {
     uint32_t offset{};
     uint8_t datatype{};
     uint32_t count{};
+
+    static PointField parsePointField(std::ifstream& rosbag);
 };
 
 class FieldData {
@@ -51,12 +60,10 @@ public:
     double read(std::ifstream& rosbag) override {
         T data;
         rosbag.read(reinterpret_cast<char*>(&data), sizeof(data));
-        return double{data};
+        return static_cast<double>(data);
     }
     uint32_t sizeofData() const override { return sizeof(T); }
 };
-
-PointField parsePointField(std::ifstream& rosbag);
 
 std::vector<std::shared_ptr<sensor_msgs::FieldData>> getFields(
         const std::vector<sensor_msgs::PointField>& fields);
@@ -74,9 +81,10 @@ struct PointCloud2 {
     std::vector<std::vector<double>> data;
 
     bool is_dense;
-};
 
-PointCloud2 parsePointCloud2(std::ifstream& rosbag);
+    PointCloud2(std::ifstream& rosbag);
+    void saveAsPLY(const std::string& output_path);
+};
 
 struct LaserScan {
     std_msgs::Header header;
@@ -89,8 +97,8 @@ struct LaserScan {
     float range_max;
     std::vector<float> ranges;
     std::vector<float> intensities;
+
+    LaserScan(std::ifstream& rosbag);
+    void saveAsPLY(const std::string& output_path);
 };
-
-LaserScan parseLaserScan(std::ifstream& rosbag);
-
 }  // namespace sensor_msgs

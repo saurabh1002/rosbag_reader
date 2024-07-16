@@ -1,0 +1,6 @@
+recursive-include rosbag_reader *.py
+recursive-include rosbag_reader *.cpp
+recursive-include rosbag_reader *.h
+global-include CMakeLists.txt
+global-include LICENSE
+global-include *.cmake

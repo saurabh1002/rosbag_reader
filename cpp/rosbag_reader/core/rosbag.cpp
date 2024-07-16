@@ -1,6 +1,28 @@
+// MIT License
+
+// Copyright (c) 2024 Saurabh Gupta
+
+// Permission is hereby granted, free of charge, to any person obtaining a copy
+// of this software and associated documentation files (the "Software"), to deal
+// in the Software without restriction, including without limitation the rights
+// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+// copies of the Software, and to permit persons to whom the Software is
+// furnished to do so, subject to the following conditions:
+
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+// SOFTWARE.
 #include "rosbag.h"
 
 #include <algorithm>
+#include <cstdint>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -8,7 +30,7 @@
 #include <numeric>
 #include <string>
 
-#include "ros_messages.h"
+#include "messages/messages.h"
 
 using FieldValMap = std::map<std::string, std::shared_ptr<char[]>>;
 
@@ -229,30 +251,44 @@ void Rosbag::printInfo() const {
     std::cout << "messages:\t\t" << num_of_messages << "\n";
 
     std::cout << "topics:\n";
-    std::for_each(connections_.cbegin(), connections_.cend(), [
-    ](const auto connection){
-        std::cout << "\t" + connection.second.topic_name + "\n";
-        std::cout << "\t\t" << connection.second.num_msgs << " msgs\n";
-        std::cout << "\t\tmsg type: " + connection.second.msg_type << "\n";
-    });
+    std::for_each(connections_.cbegin(), connections_.cend(),
+                  [](const auto connection) {
+                      std::cout << "\t" + connection.second.topic_name + "\n";
+                      std::cout << "\t\t" << connection.second.num_msgs
+                                << " msgs\n";
+                      std::cout << "\t\tmsg type: " + connection.second.msg_type
+                                << "\n";
+                  });
 }
 
-sensor_msgs::PointCloud2 Rosbag::extractPointCloud2(
-        const std::string &topic_name, int msg_idx) {
-    auto conn_id = topic_to_conn_id_[topic_name];
-    auto conn_info = connections_[conn_id];
-    auto msg_info = conn_info.messages_info[msg_idx];
-    rosbag_.seekg(msg_info.buffer_offset);
-    auto pointcloud = sensor_msgs::parsePointCloud2(rosbag_);
-    return std::move(pointcloud);
+void Rosbag::printAvailableTopics() const {
+    std::cout << "topics:\n";
+    std::for_each(connections_.cbegin(), connections_.cend(),
+                  [](const auto connection) {
+                      std::cout << "\t" + connection.second.topic_name + "\n";
+                  });
 }
 
-sensor_msgs::LaserScan Rosbag::extractLaserScan(const std::string &topic_name,
-                                                int msg_idx) {
-    auto conn_id = topic_to_conn_id_[topic_name];
-    auto conn_info = connections_[conn_id];
-    auto msg_info = conn_info.messages_info[msg_idx];
-    rosbag_.seekg(msg_info.buffer_offset);
-    auto scan = sensor_msgs::parseLaserScan(rosbag_);
-    return std::move(scan);
+void Rosbag::savePointCloud2AsPLY(const std::string &topic_name,
+                                  const std::string &output_path) {
+    auto conn_id = topic_to_conn_id_.at(topic_name);
+    auto conn_info = connections_.at(conn_id);
+    std::for_each(conn_info.messages_info.cbegin(),
+                  conn_info.messages_info.cend(), [&](const auto &msg_info) {
+                      rosbag_.seekg(msg_info.buffer_offset);
+                      auto pointcloud = sensor_msgs::PointCloud2(rosbag_);
+                      pointcloud.saveAsPLY(output_path);
+                  });
+}
+
+void Rosbag::saveLaserScanAsPLY(const std::string &topic_name,
+                                const std::string &output_path) {
+    auto conn_id = topic_to_conn_id_.at(topic_name);
+    auto conn_info = connections_.at(conn_id);
+    std::for_each(conn_info.messages_info.cbegin(),
+                  conn_info.messages_info.cend(), [&](const auto &msg_info) {
+                      rosbag_.seekg(msg_info.buffer_offset);
+                      auto laserscan = sensor_msgs::LaserScan(rosbag_);
+                      laserscan.saveAsPLY(output_path);
+                  });
 }

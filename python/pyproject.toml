@@ -1,0 +1,38 @@
+[build-system]
+requires = ["scikit_build_core", "pybind11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "rosbag_reader"
+version="0.1.0"
+authors = [
+    { name = "Saurabh Gupta", email = "saurabh.gupta1002@gmail.com" },
+]
+requires-python = ">=3.7"
+dependencies = [
+    "rich",
+    "typer[all]>=0.6.0",
+]
+
+[project.scripts]
+rosbag_reader = "rosbag_reader.tools.cmd:run"
+
+
+[tool.scikit-build]
+build-dir = "build/{wheel_tag}"
+cmake.verbose = false
+cmake.minimum-version = "3.16"
+editable.mode = "redirect"
+editable.rebuild = true
+editable.verbose = true
+sdist.exclude = ["pybind/"]
+wheel.install-dir = "rosbag_reader/pybind/"
+
+[tool.black]
+line-length = 100
+
+[tool.isort]
+profile = "black"
+
+[tool.pylint.format]
+max-line-length = "100"
