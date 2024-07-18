@@ -161,7 +161,8 @@ void PointCloud2::saveAsPLY(const std::string &output_path) {
 
     std::ofstream ply_out;
     std::ostringstream filename;
-    filename << std::to_string(header.stamp.secs) << "."
+    filename << std::to_string(header.stamp.secs) << "." << std::right
+             << std::setfill('0') << std::setw(9)
              << std::to_string(header.stamp.nsecs) << ".ply";
     ply_out.open(out_path / filename.str(),
                  std::ios_base::out | std::ios_base::binary);
@@ -218,7 +219,8 @@ void LaserScan::saveAsPLY(const std::string &output_path) {
 
     std::ofstream ply_out;
     std::ostringstream filename;
-    filename << std::to_string(header.stamp.secs) << "."
+    filename << std::to_string(header.stamp.secs) << "." << std::right
+             << std::setfill('0') << std::setw(9)
              << std::to_string(header.stamp.nsecs) << ".ply";
     ply_out.open(out_path / filename.str(),
                  std::ios_base::out | std::ios_base::binary);
