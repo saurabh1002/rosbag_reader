@@ -225,14 +225,14 @@ void LaserScan::saveAsPLY(const std::string &output_path) {
     ply_out.open(out_path / filename.str(),
                  std::ios_base::out | std::ios_base::binary);
 
-    std::vector<std::array<float, 3>> scan_data;
+    std::vector<std::array<float, 4>> scan_data;
     float angle = angle_min;
     float scan_time = scan_time;
     std::for_each(ranges.cbegin(), ranges.cend(), [&](const auto &range) {
         if ((range > range_min) && (range < range_max)) {
             float x = range * std::cos(angle);
             float y = range * std::sin(angle);
-            scan_data.emplace_back(std::array<float, 3>{x, y, scan_time});
+            scan_data.emplace_back(std::array<float, 4>{x, y, 0.0, scan_time});
         }
         scan_time += time_increment;
         angle += angle_increment;
@@ -244,6 +244,7 @@ void LaserScan::saveAsPLY(const std::string &output_path) {
 
     ply_out << "property float x" << std::endl;
     ply_out << "property float y" << std::endl;
+    ply_out << "property float z" << std::endl;
     ply_out << "property float time" << std::endl;
 
     ply_out << "end_header" << std::endl;
